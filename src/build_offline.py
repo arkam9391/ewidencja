@@ -38,7 +38,7 @@ src = swap_re(src, r"function lsLoad\(\)\{.*?\n(?=function lsSave)", r"""const I
 IDB.catch(()=>{});
 function idb(mode, fn){ return IDB.then(d=>new Promise((res,rej)=>{ const t=d.transaction("kv",mode); const q=fn(t.objectStore("kv")); t.oncomplete=()=>res(q&&q.result); t.onerror=()=>rej(t.error); })); }
 let useLS=false;
-function applyLoaded(d){ if(!d) return; state.sales=d.sales||[]; state.costs=d.costs||[]; state.settings={...DEFAULT_SETTINGS,...(d.settings||{}),wages:{...DEFAULT_SETTINGS.wages,...((d.settings||{}).wages||{})}}; state.bstate={...BK_DEFAULT,...(d.bstate||{})}; if(d.backups) state.backups=d.backups; }
+function applyLoaded(d){ if(!d) return; state.sales=d.sales||[]; state.costs=d.costs||[]; state.settings={...DEFAULT_SETTINGS,...(d.settings||{}),wages:{...DEFAULT_SETTINGS.wages,...((d.settings||{}).wages||{})}}; state.bstate={...BK_DEFAULT,...(d.bstate||{})}; state.events=d.events||[]; if(d.backups) state.backups=d.backups; }
 async function lsLoad(){
   let vault=null; try{ vault=await idb("readonly",s=>s.get("vault")); }catch(e){}
   if(vault){ applyLoaded(await unlockScreen(vault)); return; }
@@ -54,7 +54,7 @@ async function lsLoad(){
 }
 """)
 src = swap_re(src, r"function lsSave\(\)\{.*?\n", r"""function lsSave(){
-  const main={sales:state.sales,costs:state.costs,settings:state.settings,bstate:state.bstate};
+  const main={sales:state.sales,costs:state.costs,events:state.events,settings:state.settings,bstate:state.bstate};
   if(useLS){ try{ localStorage.setItem(LS, JSON.stringify({...main,backups:state.backups})); }catch(e){ showBanner("Nie udało się zapisać danych. Pobierz kopię w zakładce Kopie bezpieczeństwa."); } return; }
   const backups=state.backups.map(b=>({...b})), key=lock.key, salt=lock.salt;
   saving++;
