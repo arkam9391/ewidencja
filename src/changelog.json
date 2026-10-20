@@ -48,5 +48,10 @@
     "n": 10,
     "date": "2026-10-20",
     "text": "Nowe logo „Paragon” w panelu bocznym, na ikonie programu i karcie przeglądarki."
+  },
+  {
+    "n": 11,
+    "date": "2026-10-20",
+    "text": "Kolumna „Wysłane” w tabeli sprzedaży: zaznaczenie zapisuje datę wysyłki."
   }
 ]

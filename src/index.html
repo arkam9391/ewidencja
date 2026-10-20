@@ -186,6 +186,9 @@ button.b:disabled{opacity:.5;cursor:default}
 .src a{color:var(--accent)}
 .empty{padding:24px;text-align:center;color:var(--muted);font-size:.92rem}
 td.empty{white-space:normal}
+.ship{display:inline-flex;flex-direction:row;align-items:center;gap:6px;cursor:pointer;font-weight:400}
+.ship input{width:18px;height:18px;padding:0;accent-color:var(--accent);cursor:pointer}
+td.shipcell{width:1%}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:.88rem;z-index:20}
 @media (prefers-reduced-motion:reduce){.meter i{transition:none}}
 </style>
@@ -327,7 +330,7 @@ td.empty{white-space:normal}
     <div class="card">
       <div class="row"><h2 id="saleFormTitle">Nowa sprzedaż</h2><span class="status" id="saleStatus"></span></div>
       <form id="saleForm" autocomplete="off">
-        <input type="hidden" id="s_id">
+        <input type="hidden" id="s_id"><input type="hidden" id="s_shipped">
         <div class="fields">
           <label>Data sprzedaży<input type="date" id="s_date" required></label>
           <label style="grid-column:span 2">Produkt z listy<select id="s_productId"></select></label>
@@ -381,9 +384,9 @@ td.empty{white-space:normal}
       </form>
     </div>
     <div class="card">
-      <div class="row"><h2>Sprzedaże w roku <span id="salesYear"></span></h2>
+      <div class="row"><h2>Sprzedaże w roku <span id="salesYear"></span> <span class="pill warn" id="toShip" hidden></span></h2>
         <div class="btns"><input id="salesFilter" type="search" placeholder="Szukaj: imię i nazwisko, konto, przedmiot, nr…" style="width:260px"><button class="b sm" id="salesCsv">Pobierz CSV</button></div></div>
-      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Przedmiot i portal</th><th>Kupujący</th><th class="r">Przychód</th><th>Dokument</th></tr></thead><tbody id="salesTable"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Przedmiot i portal</th><th>Kupujący</th><th class="r">Przychód</th><th>Dokument</th><th>Wysłane</th></tr></thead><tbody id="salesTable"></tbody></table></div>
       <div class="small muted">Kliknij wiersz, żeby go edytować.</div>
     </div>
   </section>
@@ -837,11 +840,12 @@ function renderPulpit(){
 
 function renderSales(){
   $("#salesYear").textContent=state.year;
+  const nShip=yearSales().filter(x=>!x.shipped).length; $("#toShip").hidden=!nShip; $("#toShip").textContent=`do wysłania: ${nShip}`;
   const fq=$("#salesFilter").value||"", words=norm(fq).split(/\s+/).filter(Boolean);
   const list=yearSales().slice().reverse().filter(s=>{ if(!words.length) return true; const hay=norm([s.buyerName,s.buyerAccount,s.item,s.platform,s.docNo,s.notes,s.buyerAddr,s.buyerNip].join(" ")); return words.every(w=>hay.includes(w)); });
   const f=words.length;
-  $("#salesTable").innerHTML = list.length ? list.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}${isBiz(s)?"":' <span class="pill">prywatna</span>'}<div class="small muted">${esc(s.platform)}${PAY_LABEL[s.pay]?" · "+PAY_LABEL[s.pay]:""}</div></td><td class="wrap-txt">${s.buyerName?esc(s.buyerName):s.buyerAccount?esc(s.buyerAccount):'<span class="muted">—</span>'}${s.buyerName&&s.buyerAccount?`<div class="small muted">${esc(s.buyerAccount)}</div>`:""}</td><td class="r num">${fmt(revenue(s))}${+s.refund?`<div><span class="pill warn">zwrot</span></div>`:""}</td><td>${s.docNo?esc(s.docNo):'<span class="muted">—</span>'}</td></tr>`).join("")
-    : `<tr><td colspan="5" class="empty">${f?"Nic nie pasuje do wyszukiwania.":"Brak sprzedaży w "+state.year+" r. Dodaj pierwszą w formularzu powyżej."}</td></tr>`;
+  $("#salesTable").innerHTML = list.length ? list.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}${isBiz(s)?"":' <span class="pill">prywatna</span>'}<div class="small muted">${esc(s.platform)}${PAY_LABEL[s.pay]?" · "+PAY_LABEL[s.pay]:""}</div></td><td class="wrap-txt">${s.buyerName?esc(s.buyerName):s.buyerAccount?esc(s.buyerAccount):'<span class="muted">—</span>'}${s.buyerName&&s.buyerAccount?`<div class="small muted">${esc(s.buyerAccount)}</div>`:""}</td><td class="r num">${fmt(revenue(s))}${+s.refund?`<div><span class="pill warn">zwrot</span></div>`:""}</td><td>${s.docNo?esc(s.docNo):'<span class="muted">—</span>'}</td><td class="shipcell"><label class="ship" title="${s.shipped?"Wysłane "+plDate(s.shipped)+". Kliknij, żeby cofnąć.":"Zaznacz, gdy towar zostanie "+(s.delivery==="osobisty"?"wydany":"wysłany")}"><input type="checkbox" data-ship="${esc(s.id)}" ${s.shipped?"checked":""} aria-label="${s.delivery==="osobisty"?"Wydane":"Wysłane"}: ${esc(s.item)}">${s.shipped?`<span class="small muted num">${plDate(s.shipped).slice(0,5)}</span>`:""}</label></td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">${f?"Nic nie pasuje do wyszukiwania.":"Brak sprzedaży w "+state.year+" r. Dodaj pierwszą w formularzu powyżej."}</td></tr>`;
 }
 function renderCosts(){
   $("#costsYear").textContent=state.year;
@@ -1332,7 +1336,7 @@ $("#prodDelete").onclick=async ()=>{
 $("#prodCsv").onclick=()=>download("produkty.csv", csv([["Nazwa","Grupa","Cena","Koszt zakupu","Stan","Uwagi","Sprzedano"],...prodList().map(p=>[p.name,p.group,n2(p.price),n2(p.cost),p.active===false?"archiwalny":"dostępny",p.notes,prodStats()[p.id]?.n||0])]));
 
 // ---------- forms ----------
-const SALE_FIELDS=["date","productId","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAccount","buyerAddr","buyerNip","docType","docNo","notes"];
+const SALE_FIELDS=["date","productId","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAccount","buyerAddr","shipped","buyerNip","docType","docNo","notes"];
 const NUMS=new Set(["price","ship","cost","refund","amount","eur"]);
 function resetSale(){ renderPlatformSelect(); renderProductSelect(); $("#saleForm").reset(); $("#s_id").value=""; $("#s_date").value=today(); $("#saleFormTitle").textContent="Nowa sprzedaż"; $("#saleDelete").hidden=true; $("#saleDoc").hidden=true; $("#saleDelete").dataset.armed=""; $("#saleDelete").textContent="Usuń"; }
 function editSale(id){
@@ -1360,6 +1364,13 @@ $("#saleDelete").onclick=async ()=>{
 $("#saleDoc").onclick=()=>{ const id=$("#s_id").value; switchTab("dokumenty"); renderDocSelect(id); loadDocFor(id); };
 function rowClick(tbody, fn){ tbody.addEventListener("click",e=>{ const tr=e.target.closest("tr[data-id]"); if(tr) fn(tr.dataset.id); }); tbody.addEventListener("keydown",e=>{ if(e.key==="Enter"){ const tr=e.target.closest("tr[data-id]"); if(tr) fn(tr.dataset.id); } }); }
 rowClick($("#salesTable"), editSale);
+$("#salesTable").addEventListener("click", e=>{ if(e.target.closest(".ship")) e.stopPropagation(); }, true);
+$("#salesTable").addEventListener("change", async e=>{
+  const cb=e.target.closest("[data-ship]"); if(!cb) return;
+  const s=state.sales.find(x=>x.id===cb.dataset.ship); if(!s) return;
+  try{ await putDoc("sales",{...s, shipped: cb.checked ? today() : ""}); toast(cb.checked?"Oznaczono jako wysłane":"Cofnięto oznaczenie wysyłki"); }
+  catch(err){ cb.checked=!cb.checked; toast("Nie zapisano, spróbuj ponownie"); }
+});
 rowClick($("#prodTable"), id=>{ const p=prodList().find(x=>x.id===id); if(!p) return; $("#p_id").value=p.id; $("#p_name").value=p.name; $("#p_group").value=p.group||""; $("#p_price").value=+p.price||""; $("#p_cost").value=+p.cost||""; $("#p_notes").value=p.notes||""; $("#p_active").value=p.active===false?"0":"1"; $("#prodFormTitle").textContent="Edycja produktu"; $("#prodDelete").hidden=false; $("#prodForm").scrollIntoView({behavior:"smooth",block:"start"}); });
 $("#salesFilter").addEventListener("input", renderSales);
 
