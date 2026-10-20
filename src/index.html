@@ -787,12 +787,12 @@ function docHTML(d){
   <div style="text-align:right;font-size:16px;margin:14px 0 2px">Do zapłaty: <b>${fmt(total)}</b></div>
   <div style="text-align:right;margin-bottom:14px">Słownie: ${esc(plnWords(total))}</div>
   <div>Sposób zapłaty: ${esc(d.pay)}${st.account&&!/gotówka/.test(d.pay)?"<br>Numer konta: "+esc(st.account):""}</div>
-  ${isF?'<div style="margin-top:10px">Podstawa zwolnienia z VAT: art. 113 ust. 1 ustawy z dnia 11 marca 2004 r. o podatku od towarów i usług.</div>':'<div style="margin-top:10px;color:#444">Sprzedaż w ramach działalności nierejestrowanej (art. 5 ust. 1 ustawy Prawo przedsiębiorców). Sprzedawca zwolniony z VAT na podstawie art. 113 ust. 1 ustawy o VAT.</div>'}
+  <div style="margin-top:10px">Sprzedawca zwolniony z VAT na podstawie art. 113 ust. 1 ustawy o VAT.</div>
 </div>`;
 }
 function docText(d){
   const st=state.settings, s=d.s, isF=d.type==="faktura";
-  return `${isF?"FAKTURA (bez VAT)":"RACHUNEK"} nr ${d.no}\nData wystawienia: ${plDate(d.date)}  Data sprzedaży: ${plDate(s.date)}\n\nSprzedawca: ${st.name}, ${st.addr}${isF&&st.nip?", NIP "+st.nip:""}\nNabywca: ${s.buyerName||"—"}${s.buyerAddr?", "+s.buyerAddr:""}${s.buyerNip?", NIP "+s.buyerNip:""}\n\n1. ${s.item} — ${fmt(s.price)}${+s.ship?"\n2. Koszt wysyłki — "+fmt(s.ship):""}${+s.refund?"\nZwrot — -"+fmt(s.refund):""}\n\nDo zapłaty: ${fmt(revenue(s))}\nSłownie: ${plnWords(revenue(s))}\nSposób zapłaty: ${d.pay}\nPodstawa zwolnienia z VAT: art. 113 ust. 1 ustawy o VAT.`;
+  return `${isF?"FAKTURA (bez VAT)":"RACHUNEK"} nr ${d.no}\nData wystawienia: ${plDate(d.date)}  Data sprzedaży: ${plDate(s.date)}\n\nSprzedawca: ${st.name}, ${st.addr}${isF&&st.nip?", NIP "+st.nip:""}\nNabywca: ${s.buyerName||"—"}${s.buyerAddr?", "+s.buyerAddr:""}${s.buyerNip?", NIP "+s.buyerNip:""}\n\n1. ${s.item} — ${fmt(s.price)}${+s.ship?"\n2. Koszt wysyłki — "+fmt(s.ship):""}${+s.refund?"\nZwrot — -"+fmt(s.refund):""}\n\nDo zapłaty: ${fmt(revenue(s))}\nSłownie: ${plnWords(revenue(s))}\nSposób zapłaty: ${d.pay}\nSprzedawca zwolniony z VAT na podstawie art. 113 ust. 1 ustawy o VAT.`;
 }
 const W1=["","jeden","dwa","trzy","cztery","pięć","sześć","siedem","osiem","dziewięć","dziesięć","jedenaście","dwanaście","trzynaście","czternaście","piętnaście","szesnaście","siedemnaście","osiemnaście","dziewiętnaście"];
 const W10=["","","dwadzieścia","trzydzieści","czterdzieści","pięćdziesiąt","sześćdziesiąt","siedemdziesiąt","osiemdziesiąt","dziewięćdziesiąt"];
