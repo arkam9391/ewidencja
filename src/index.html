@@ -1,0 +1,829 @@
+<title>Ewidencja sprzedaży</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: księga rachunkowa — wąski nagłówek z zakładkami, pod nim jedna kolumna kart o roli „karta ewidencji”, liczby w kroju mono */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --surface-2:#e9eef2; --fg:#14212b; --muted:#5a6b78; --line:#d3dce3;
+  --accent:#1d5b86; --accent-ink:#ffffff; --accent-soft:#dbe9f3;
+  --ok:#1f7a4d; --ok-soft:#ddf1e6; --warn:#a1620b; --warn-soft:#f8ead2; --crit:#b3261e; --crit-soft:#f7dcd9;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-num:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161c; --surface:#16212a; --surface-2:#1d2a35; --fg:#e4ebf0; --muted:#93a4b1; --line:#2b3b48;
+  --accent:#6fb0de; --accent-ink:#0b1a24; --accent-soft:#1c3446;
+  --ok:#5cc995; --ok-soft:#173528; --warn:#e5a94f; --warn-soft:#3a2c14; --crit:#f08a80; --crit-soft:#3d1d1a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161c; --surface:#16212a; --surface-2:#1d2a35; --fg:#e4ebf0; --muted:#93a4b1; --line:#2b3b48;
+  --accent:#6fb0de; --accent-ink:#0b1a24; --accent-soft:#1c3446;
+  --ok:#5cc995; --ok-soft:#173528; --warn:#e5a94f; --warn-soft:#3a2c14; --crit:#f08a80; --crit-soft:#3d1d1a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding-block:12px 0}
+h1{font-family:var(--f-display);font-weight:700;font-size:1.35rem;margin:0;letter-spacing:-.01em}
+h1 small{font-family:var(--f-body);font-weight:500;font-size:.8rem;color:var(--muted);margin-left:8px;letter-spacing:0}
+.yearpick{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+nav{flex-basis:100%;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav button{all:unset;cursor:pointer;padding:10px 12px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+nav button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+main{padding-block:20px 60px;display:grid;gap:18px}
+h2{font-family:var(--f-display);font-weight:700;font-size:1.15rem;margin:0;text-wrap:balance}
+h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0;font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:14px;min-width:0}
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.big{font-family:var(--f-num);font-size:1.9rem;font-weight:500;letter-spacing:-.02em;line-height:1.1}
+.muted{color:var(--muted)} .small{font-size:.85rem}
+.meter{height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden;position:relative}
+.meter i{display:block;height:100%;background:var(--ok);border-radius:6px;transition:width .4s}
+.meter.warn i{background:var(--warn)} .meter.crit i{background:var(--crit)}
+.meter b{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);opacity:.35;left:80%}
+.row{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.crit{background:var(--crit-soft);color:var(--crit)} .pill.info{background:var(--accent-soft);color:var(--accent)}
+.alerts{display:grid;gap:8px}
+.alert{border-left:4px solid var(--muted);background:var(--surface-2);padding:10px 14px;border-radius:0 8px 8px 0;font-size:.92rem}
+.alert.warn{border-color:var(--warn);background:var(--warn-soft)} .alert.crit{border-color:var(--crit);background:var(--crit-soft)} .alert.ok{border-color:var(--ok);background:var(--ok-soft)}
+.alert strong{display:block}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--surface-2)}
+td.r,th.r{text-align:right}
+tbody tr:last-child td{border-bottom:0}
+tfoot td{font-weight:600;background:var(--surface-2)}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--accent-soft)}
+td.wrap-txt{white-space:normal;min-width:160px}
+form{display:grid;gap:12px}
+.fields{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+label{display:grid;gap:4px;font-size:.8rem;font-weight:600;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:.95rem;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button.b{font:inherit;font-weight:600;font-size:.9rem;cursor:pointer;border-radius:7px;padding:8px 14px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+button.b.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.b.danger{color:var(--crit);border-color:var(--crit)}
+button.b.sm{padding:4px 10px;font-size:.8rem}
+button.b:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.b:disabled{opacity:.5;cursor:default}
+.status{font-size:.82rem;color:var(--muted)}
+.banner{background:var(--warn-soft);color:var(--fg);border:1px solid var(--warn);border-radius:8px;padding:10px 14px;font-size:.88rem}
+.doc-preview{background:#fff;color:#111;border:1px solid var(--line);border-radius:8px;padding:28px;font-family:var(--f-body);overflow-x:auto}
+.doc-preview table{color:#111}
+.doc-preview th{background:#eef1f4;color:#333}
+.doc-preview td,.doc-preview th{border-bottom:1px solid #ccc}
+.rules{display:grid;gap:12px}
+.rules p{margin:0;max-width:72ch}
+.rules dt{font-weight:600;margin-top:6px}
+.rules dd{margin:2px 0 0;max-width:72ch;color:var(--fg)}
+.src a{color:var(--accent)}
+.empty{padding:24px;text-align:center;color:var(--muted);font-size:.92rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:.88rem;z-index:20}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+</style>
+
+<header>
+  <div class="wrap">
+    <h1>Ewidencja sprzedaży <small>działalność nierejestrowana</small></h1>
+    <div class="yearpick"><label for="year" style="display:inline;color:inherit">Rok</label><select id="year" style="width:auto"></select></div>
+    <nav role="tablist" id="tabs">
+      <button role="tab" data-tab="pulpit" aria-selected="true">Pulpit</button>
+      <button role="tab" data-tab="sprzedaz">Sprzedaż</button>
+      <button role="tab" data-tab="koszty">Koszty</button>
+      <button role="tab" data-tab="ewidencja">Ewidencja dzienna</button>
+      <button role="tab" data-tab="dokumenty">Rachunki i faktury</button>
+      <button role="tab" data-tab="pit">PIT roczny</button>
+      <button role="tab" data-tab="kopie">Kopie bezpieczeństwa</button>
+      <button role="tab" data-tab="ustawienia">Ustawienia</button>
+      <button role="tab" data-tab="zasady">Zasady</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="storeBanner" class="banner" hidden></div>
+
+  <!-- PULPIT -->
+  <section data-panel="pulpit" style="display:grid;gap:18px">
+    <div class="alerts" id="alerts"></div>
+    <div class="grid">
+      <div class="card">
+        <div class="row"><h3 id="qTitle">Bieżący kwartał</h3><span id="qPill" class="pill">—</span></div>
+        <div class="big" id="qRevenue">0,00 zł</div>
+        <div class="meter" id="qMeter"><i style="width:0"></i><b title="80% limitu"></b></div>
+        <div class="row small muted"><span>limit <span class="num" id="qLimit">—</span></span><span>zostało <span class="num" id="qLeft">—</span></span></div>
+      </div>
+      <div class="card">
+        <div class="row"><h3>Kasa fiskalna</h3><span id="kasaPill" class="pill">—</span></div>
+        <div class="big" id="kasaVal">0,00 zł</div>
+        <div class="meter" id="kasaMeter"><i style="width:0"></i><b></b></div>
+        <div class="small muted">Sprzedaż konsumentom poza zwolnieniem wysyłkowym (gotówka, odbiór osobisty) w roku. Limit zwolnienia 20 000 zł.</div>
+      </div>
+      <div class="card">
+        <div class="row"><h3>Rok w liczbach</h3></div>
+        <div class="tablewrap" style="border:0">
+          <table><tbody id="yearStats"></tbody></table>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row"><h2>Kwartały</h2><span class="small muted" id="limitNote"></span></div>
+      <div class="tablewrap"><table><thead><tr><th>Kwartał</th><th class="r">Przychód</th><th class="r">Limit</th><th class="r">Wykorzystanie</th><th>Stan</th></tr></thead><tbody id="qTable"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="row"><h2>Platformy i DAC7</h2><span class="small muted">Platforma raportuje do KAS, gdy w roku jest co najmniej 30 transakcji albo ponad 2000 €.</span></div>
+      <div class="tablewrap"><table><thead><tr><th>Platforma</th><th class="r">Transakcje</th><th class="r">Kwota</th><th class="r">W euro</th><th>DAC7</th></tr></thead><tbody id="dacTable"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- SPRZEDAŻ -->
+  <section data-panel="sprzedaz" hidden style="display:grid;gap:18px">
+    <div class="card">
+      <div class="row"><h2 id="saleFormTitle">Nowa sprzedaż</h2><span class="status" id="saleStatus"></span></div>
+      <form id="saleForm" autocomplete="off">
+        <input type="hidden" id="s_id">
+        <div class="fields">
+          <label>Data sprzedaży<input type="date" id="s_date" required></label>
+          <label style="grid-column:span 2">Przedmiot<input id="s_item" required placeholder="np. Kurtka zimowa Reserved M"></label>
+          <label>Platforma<select id="s_platform"></select></label>
+          <label>Cena (zł)<input type="number" step="0.01" min="0" id="s_price" required inputmode="decimal"></label>
+          <label>Wysyłka pobrana od kupującego (zł)<input type="number" step="0.01" min="0" id="s_ship" value="0" inputmode="decimal"></label>
+          <label>Płatność<select id="s_pay">
+            <option value="platforma">Przez platformę</option>
+            <option value="przelew">Przelew na konto</option>
+            <option value="pobranie">Za pobraniem</option>
+            <option value="gotowka">Gotówka / BLIK przy odbiorze</option>
+          </select></label>
+          <label>Dostawa<select id="s_delivery">
+            <option value="wysylka">Wysyłka</option>
+            <option value="osobisty">Odbiór osobisty</option>
+          </select></label>
+          <label>Kupujący<select id="s_buyerType">
+            <option value="konsument">Osoba prywatna</option>
+            <option value="firma">Firma</option>
+          </select></label>
+          <label>Rodzaj sprzedaży<select id="s_kind">
+            <option value="dzialalnosc">Działalność (liczy się do limitu)</option>
+            <option value="prywatna">Rzecz prywatna (poza działalnością)</option>
+          </select></label>
+          <label>Koszt zakupu towaru (zł)<input type="number" step="0.01" min="0" id="s_cost" value="0" inputmode="decimal"></label>
+          <label>Zwrot dla kupującego (zł)<input type="number" step="0.01" min="0" id="s_refund" value="0" inputmode="decimal"></label>
+        </div>
+        <details>
+          <summary class="small" style="cursor:pointer;font-weight:600">Dane kupującego i dokument</summary>
+          <div class="fields" style="margin-top:10px">
+            <label>Imię i nazwisko / firma<input id="s_buyerName" placeholder="np. Jan Kowalski"></label>
+            <label style="grid-column:span 2">Adres<input id="s_buyerAddr"></label>
+            <label>NIP kupującego<input id="s_buyerNip" inputmode="numeric"></label>
+            <label>Dokument<select id="s_docType">
+              <option value="">Brak (nikt nie żądał)</option>
+              <option value="rachunek">Rachunek</option>
+              <option value="faktura">Faktura</option>
+            </select></label>
+            <label>Numer dokumentu<input id="s_docNo"></label>
+          </div>
+        </details>
+        <label>Uwagi<input id="s_notes" placeholder="np. numer zamówienia z platformy"></label>
+        <div class="btns">
+          <button class="b primary" type="submit" id="saleSave">Zapisz sprzedaż</button>
+          <button class="b" type="button" id="saleReset">Wyczyść</button>
+          <button class="b danger" type="button" id="saleDelete" hidden>Usuń</button>
+          <button class="b" type="button" id="saleDoc" hidden>Wystaw dokument</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <div class="row"><h2>Sprzedaże w roku <span id="salesYear"></span></h2>
+        <div class="btns"><input id="salesFilter" type="search" placeholder="Szukaj: imię i nazwisko, przedmiot, nr…" style="width:260px"><button class="b sm" id="salesCsv">Pobierz CSV</button></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Przedmiot</th><th>Platforma</th><th>Kupujący</th><th class="r">Przychód</th><th>Płatność</th><th>Dokument</th><th>Rodzaj</th></tr></thead><tbody id="salesTable"></tbody></table></div>
+      <div class="small muted">Kliknij wiersz, żeby go edytować.</div>
+    </div>
+  </section>
+
+  <!-- KOSZTY -->
+  <section data-panel="koszty" hidden style="display:grid;gap:18px">
+    <div class="card">
+      <div class="row"><h2 id="costFormTitle">Nowy koszt</h2><span class="status" id="costStatus"></span></div>
+      <p class="small muted" style="margin:0;max-width:72ch">Koszty zmniejszają dochód w PIT-36, ale nie zmniejszają przychodu liczonego do limitu. Zachowaj paragon, fakturę lub potwierdzenie przelewu.</p>
+      <form id="costForm" autocomplete="off">
+        <input type="hidden" id="c_id">
+        <div class="fields">
+          <label>Data<input type="date" id="c_date" required></label>
+          <label style="grid-column:span 2">Opis<input id="c_desc" required placeholder="np. zakup 10 bluz na odsprzedaż"></label>
+          <label>Kategoria<select id="c_cat">
+            <option value="towar">Towar do odsprzedaży</option>
+            <option value="wysylka">Wysyłka</option>
+            <option value="prowizja">Prowizja platformy</option>
+            <option value="opakowania">Opakowania</option>
+            <option value="reklama">Wyróżnienia i reklama</option>
+            <option value="inne">Inne</option>
+          </select></label>
+          <label>Kwota (zł)<input type="number" step="0.01" min="0" id="c_amount" required inputmode="decimal"></label>
+          <label>Dowód (nr dokumentu)<input id="c_ref"></label>
+        </div>
+        <div class="btns">
+          <button class="b primary" type="submit">Zapisz koszt</button>
+          <button class="b" type="button" id="costReset">Wyczyść</button>
+          <button class="b danger" type="button" id="costDelete" hidden>Usuń</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <div class="row"><h2>Koszty w roku <span id="costsYear"></span></h2><button class="b sm" id="costsCsv">Pobierz CSV</button></div>
+      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Opis</th><th>Kategoria</th><th class="r">Kwota</th><th>Dowód</th></tr></thead><tbody id="costsTable"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- EWIDENCJA -->
+  <section data-panel="ewidencja" hidden style="display:grid;gap:18px">
+    <div class="card">
+      <div class="row"><h2>Uproszczona ewidencja sprzedaży <span id="ewYear"></span></h2><button class="b sm" id="ewCsv">Pobierz CSV</button></div>
+      <p class="small muted" style="margin:0;max-width:72ch">Jeden wiersz na każdy dzień ze sprzedażą: przychód z dnia i przychód narastająco od początku roku. Wpis robi się na koniec dnia sprzedaży, najpóźniej przed sprzedażą następnego dnia. Zwroty pomniejszają przychód dnia sprzedaży. Rzeczy prywatne nie trafiają do ewidencji.</p>
+      <div class="tablewrap"><table><thead><tr><th>Lp.</th><th>Data</th><th class="r">Przychód z dnia</th><th class="r">Narastająco w roku</th><th class="r">Narastająco w kwartale</th><th>Dokumenty</th></tr></thead><tbody id="ewTable"></tbody><tfoot id="ewFoot"></tfoot></table></div>
+    </div>
+  </section>
+
+  <!-- DOKUMENTY -->
+  <section data-panel="dokumenty" hidden style="display:grid;gap:18px">
+    <div class="card">
+      <div class="row"><h2>Wystaw rachunek lub fakturę</h2><span class="status" id="docStatus"></span></div>
+      <p class="small muted" style="margin:0;max-width:72ch">Dokument wystawiasz na żądanie kupującego zgłoszone w ciągu 3 miesięcy. Rachunek wystarcza w większości przypadków. Faktura bez VAT wymaga Twojego NIP i podstawy zwolnienia (art. 113 ust. 1 ustawy o VAT).</p>
+      <div class="fields">
+        <label>Sprzedaż<select id="d_sale"></select></label>
+        <label>Rodzaj<select id="d_type"><option value="rachunek">Rachunek</option><option value="faktura">Faktura (bez VAT)</option></select></label>
+        <label>Numer<input id="d_no"></label>
+        <label>Data wystawienia<input type="date" id="d_date"></label>
+        <label>Sposób zapłaty<input id="d_payText"></label>
+      </div>
+      <div class="btns">
+        <button class="b primary" id="docAssign">Zapisz numer przy sprzedaży</button>
+        <button class="b" id="docDownload">Pobierz dokument (HTML)</button>
+        <button class="b" id="docCopy">Kopiuj jako tekst</button>
+      </div>
+      <div class="doc-preview" id="docPreview"><div class="empty" style="color:#555">Wybierz sprzedaż, a tu pojawi się podgląd dokumentu.</div></div>
+      <p class="small muted" style="margin:0">Pobrany plik HTML otworzysz w przeglądarce i wydrukujesz lub zapiszesz jako PDF.</p>
+    </div>
+  </section>
+
+  <!-- PIT -->
+  <section data-panel="pit" hidden style="display:grid;gap:18px">
+    <div class="card">
+      <div class="row"><h2>Zestawienie do PIT-36 za <span id="pitYear"></span></h2><span class="pill info">przychody z innych źródeł</span></div>
+      <p class="small muted" style="margin:0;max-width:72ch">Przychód z działalności nierejestrowanej wykazujesz raz w roku w PIT-36, w części „inne źródła”, do 30 kwietnia następnego roku. W trakcie roku nie płacisz zaliczek. Dochód doliczasz do innych dochodów opodatkowanych skalą (12% i 32%).</p>
+      <div class="tablewrap"><table><tbody id="pitTable"></tbody></table></div>
+      <h3>Koszty według kategorii</h3>
+      <div class="tablewrap"><table><thead><tr><th>Kategoria</th><th class="r">Kwota</th></tr></thead><tbody id="pitCosts"></tbody></table></div>
+      <h3>Sprzedaż rzeczy prywatnych</h3>
+      <p class="small" style="margin:0;max-width:72ch" id="pitPrivate"></p>
+    </div>
+  </section>
+
+  <!-- USTAWIENIA -->
+  <section data-panel="ustawienia" hidden style="display:grid;gap:18px">
+    <div class="card">
+      <div class="row"><h2>Twoje dane na dokumentach</h2><span class="status" id="setStatus"></span></div>
+      <form id="setForm" autocomplete="off">
+        <div class="fields">
+          <label>Imię i nazwisko<input id="st_name"></label>
+          <label style="grid-column:span 2">Adres<input id="st_addr"></label>
+          <label>NIP (tylko do faktur)<input id="st_nip" inputmode="numeric"></label>
+          <label>Numer konta<input id="st_account"></label>
+          <label>Kurs euro do DAC7 (zł)<input type="number" step="0.0001" id="st_eur"></label>
+        </div>
+        <h3>Minimalne wynagrodzenie (podstawa limitu)</h3>
+        <div class="fields" id="wageFields"></div>
+        <p class="small muted" style="margin:0;max-width:72ch">Od 2026 r. limit wynosi 225% minimalnego wynagrodzenia na kwartał. Do 2025 r. było to 75% na miesiąc. Kwota na 2027 r. pochodzi z projektu rozporządzenia, zmień ją, jeśli ostateczna będzie inna.</p>
+        <div class="btns"><button class="b primary" type="submit">Zapisz ustawienia</button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- KOPIE -->
+  <section data-panel="kopie" hidden style="display:grid;gap:18px">
+    <div class="alerts" id="bkAlerts"></div>
+    <div class="card">
+      <div class="row"><h2>Kopie bezpieczeństwa</h2><span class="status" id="bkStatus"></span></div>
+      <div class="tablewrap" style="border:0"><table><tbody id="bkSummary"></tbody></table></div>
+      <div class="fields">
+        <label>Automatyczna kopia co<select id="bk_every"><option value="1">1 dzień</option><option value="3">3 dni</option><option value="7">7 dni</option><option value="14">14 dni</option><option value="30">30 dni</option></select></label>
+        <label>Przechowuj w aplikacji<select id="bk_keep"><option value="5">5 ostatnich kopii</option><option value="10">10 ostatnich kopii</option><option value="20">20 ostatnich kopii</option><option value="30">30 ostatnich kopii</option></select></label>
+        <label>Przypominaj o nośniku zewnętrznym co<select id="bk_remind"><option value="7">7 dni</option><option value="14">14 dni</option><option value="30">30 dni</option><option value="90">90 dni</option></select></label>
+      </div>
+      <div class="btns">
+        <button class="b primary" id="bkNow">Utwórz kopię teraz</button>
+        <button class="b" id="backupDl">Pobierz kopię na dysk (JSON)</button>
+        <button class="b" id="bkConfirm">Kopia jest na nośniku zewnętrznym</button>
+      </div>
+      <p class="small muted" style="margin:0;max-width:72ch">Kopia automatyczna tworzy się przy otwarciu aplikacji, gdy od poprzedniej minął ustawiony czas. Kopie w aplikacji chronią przed pomyłką, np. przypadkowym usunięciem wpisu. Przed awarią konta chroni tylko kopia poza claude.ai: pobierz plik i przenieś go na pendrive, dysk zewnętrzny albo do chmury, potem potwierdź to przyciskiem.</p>
+    </div>
+    <div class="card">
+      <h2>Zapisane kopie</h2>
+      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Rodzaj</th><th class="r">Sprzedaże</th><th class="r">Koszty</th><th class="r">Rozmiar</th><th></th></tr></thead><tbody id="bkTable"></tbody></table></div>
+      <p class="small muted" style="margin:0;max-width:72ch">Przywrócenie zastępuje wszystkie obecne dane stanem z kopii. Przed przywróceniem aplikacja sama zapisuje kopię bieżącego stanu, więc możesz to cofnąć.</p>
+    </div>
+    <div class="card">
+      <h2>Wczytaj kopię z pliku</h2>
+      <p class="small muted" style="margin:0;max-width:72ch">Wybierz plik JSON pobrany wcześniej z tej aplikacji. Wczytanie dodaje wpisy i nadpisuje te o tych samych identyfikatorach. Przed wczytaniem aplikacja zapisuje kopię bieżącego stanu.</p>
+      <div class="btns">
+        <label class="b" style="display:inline-flex;cursor:pointer;font-size:.9rem;color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:8px 14px">Wybierz plik kopii<input type="file" id="backupUp" accept=".json,application/json" hidden></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ZASADY -->
+  <section data-panel="zasady" hidden>
+    <div class="card rules">
+      <h2>Najważniejsze zasady (stan na październik 2026)</h2>
+      <dl>
+        <dt>Limit przychodu</dt>
+        <dd>Od 1 stycznia 2026 r. przychód w kwartale nie może przekroczyć 225% minimalnego wynagrodzenia. W 2026 r. to 225% × 4806 zł = 10 813,50 zł na kwartał. Liczy się przychód (cena plus pobrana wysyłka, minus zwroty), a nie zysk.</dd>
+        <dt>Przekroczenie limitu</dt>
+        <dd>Działalność staje się działalnością gospodarczą od dnia przekroczenia, jeśli w ciągu 7 dni złożysz wniosek o wpis do CEIDG. Od tego dnia obowiązuje m.in. ZUS.</dd>
+        <dt>Ewidencja</dt>
+        <dd>Uproszczona ewidencja sprzedaży: data, przychód z danego dnia i przychód narastająco. Forma dowolna (papier albo elektronicznie). Wpis na koniec dnia sprzedaży.</dd>
+        <dt>Rachunki i faktury</dt>
+        <dd>Wystawiasz na żądanie kupującego zgłoszone w ciągu 3 miesięcy. Jako podatnik zwolniony z VAT możesz wystawić rachunek; faktura bez VAT musi zawierać podstawę zwolnienia. Faktury dla firm od 2026–2027 r. obejmuje KSeF, więc przy fakturze dla firmy sprawdź aktualny obowiązek. Rachunków KSeF nie dotyczy.</dd>
+        <dt>Kasa fiskalna</dt>
+        <dd>Zwolnienie do 20 000 zł rocznej sprzedaży na rzecz osób prywatnych. Sprzedaż wysyłkowa, w której cała zapłata przychodzi przelewem, przez pocztę lub bank, a z dokumentów widać, czego dotyczyła, jest zwolniona niezależnie od kwoty. Gotówka przy odbiorze osobistym liczy się do limitu.</dd>
+        <dt>VAT</dt>
+        <dd>Zwolnienie podmiotowe do 240 000 zł sprzedaży w roku. Przy limicie działalności nierejestrowanej praktycznie nieosiągalne.</dd>
+        <dt>DAC7</dt>
+        <dd>Platformy (Vinted, Allegro, OLX itd.) przekazują do KAS dane sprzedawców, którzy mają w roku co najmniej 30 transakcji albo ponad 2000 € wynagrodzenia. To próg raportowy, nie podatkowy.</dd>
+        <dt>PIT</dt>
+        <dd>PIT-36, „inne źródła”, do 30 kwietnia następnego roku. Dochód = przychód minus udokumentowane koszty. Bez zaliczek i bez ZUS.</dd>
+        <dt>Rzeczy prywatne</dt>
+        <dd>Sprzedaż własnych rzeczy po upływie 6 miesięcy od końca miesiąca ich nabycia nie podlega PIT i nie jest działalnością. Oznaczaj takie sprzedaże jako „rzecz prywatna”, żeby nie zawyżały limitu.</dd>
+      </dl>
+      <p class="small muted">To pomoc w prowadzeniu ewidencji, nie porada podatkowa. Przy wątpliwościach zapytaj Krajową Informację Skarbową: 22 330 03 30.</p>
+      <p class="small src">Źródła: <a href="https://fakturownia.pl/aktualnosci/dzialalnosc-nierejestrowana-2026-nowe-zasady-i-nowe-limity" target="_blank" rel="noopener">Fakturownia</a> · <a href="https://www.pit.pl/aktualnosci/zmiany-w-dzialalnosci-nierejestrowanej-z-podpisem-prezydenta-nowe-limity-i-zasady-rozliczania-2026-1011566" target="_blank" rel="noopener">PIT.pl</a> · <a href="https://firmove.pl/aktualnosci/prawo/prawo-gospodarcze/ewidencja-sprzedazy-w-dzialalnosci-nierejestrowanej-i-rejestrowanej" target="_blank" rel="noopener">Firmove</a> · <a href="https://amavat.pl/vinted-i-sprzedaz-c2c-a-podatki-kiedy-fiskus-sie-upomni-dac7-w-praktyce/" target="_blank" rel="noopener">Amavat (DAC7)</a> · <a href="https://www.podatki.biz/artykuly/dzialalnosc-nierejestrowana-i-ksef_55_59872.htm" target="_blank" rel="noopener">Podatki.biz (KSeF)</a></p>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+const PLATFORMS = ["Vinted","Allegro","Allegro Lokalnie","OLX","eBay","Etsy","Facebook Marketplace","Sklep własny","Bezpośrednio","Inna"];
+const NON_DAC7 = new Set(["Sklep własny","Bezpośrednio"]);
+const PAY_LABEL = {platforma:"Przez platformę",przelew:"Przelew",pobranie:"Pobranie",gotowka:"Gotówka/BLIK"};
+const CAT_LABEL = {towar:"Towar do odsprzedaży",wysylka:"Wysyłka",prowizja:"Prowizja platformy",opakowania:"Opakowania",reklama:"Wyróżnienia i reklama",inne:"Inne"};
+const DEFAULT_SETTINGS = {name:"",addr:"",nip:"",account:"",eur:4.25,wages:{"2025":4666,"2026":4806,"2027":4950}};
+const KASA_LIMIT = 20000, VAT_LIMIT = 240000, DAC7_COUNT = 30, DAC7_EUR = 2000;
+
+const BK_DEFAULT = {every:7, keep:10, remindEvery:14, lastAutoAt:0, lastDownloadAt:0, lastExternalAt:0};
+const BK_KIND = {auto:"Automatyczna", manual:"Ręczna", pre:"Przed przywróceniem", import:"Przed wczytaniem pliku"};
+const DAY = 86400000, CHUNK = 100000;
+const state = {sales:[], costs:[], settings:{...DEFAULT_SETTINGS}, backups:[], bstate:{...BK_DEFAULT}, year:new Date().getFullYear(), tab:"pulpit"};
+const $ = s => document.querySelector(s);
+const fmt = n => (Math.round((+n||0)*100)/100).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2}) + " zł";
+const fmtE = n => (Math.round((+n||0)*100)/100).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €";
+const pct = n => (Math.round(n*1000)/10).toLocaleString("pl-PL") + "%";
+const norm = s => String(s ?? "").toLowerCase().replace(/ł/g,"l").normalize("NFD").replace(/[̀-ͯ]/g,"");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const plDate = iso => iso ? iso.split("-").reverse().join(".") : "";
+const yearOf = iso => +String(iso).slice(0,4);
+const quarterOf = iso => Math.floor((+String(iso).slice(5,7)-1)/3)+1;
+const revenue = s => Math.max(0,(+s.price||0)+(+s.ship||0)-(+s.refund||0));
+const isBiz = s => s.kind !== "prywatna";
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,2600); }
+
+// ---------- limit ----------
+function wageFor(y){ const w=state.settings.wages||{}; return +w[y] || +w[Object.keys(w).sort().pop()] || 4806; }
+function quarterLimit(y){ return y>=2026 ? wageFor(y)*2.25 : wageFor(y)*0.75*3; }
+
+// ---------- storage ----------
+let db = null, mode = "memory";
+const LS = "ewidencja-dn-v1";
+function lsLoad(){ try{ const d=JSON.parse(localStorage.getItem(LS)||"null"); if(d){ state.sales=d.sales||[]; state.costs=d.costs||[]; state.settings={...DEFAULT_SETTINGS,...(d.settings||{})}; state.backups=d.backups||[]; state.bstate={...BK_DEFAULT,...(d.bstate||{})}; } }catch(e){} }
+function lsSave(){ try{ localStorage.setItem(LS, JSON.stringify({sales:state.sales,costs:state.costs,settings:state.settings,backups:state.backups,bstate:state.bstate})); }catch(e){} }
+
+async function putDoc(coll, obj){
+  if(db){ await db.collection(coll).doc(obj.id).set(obj); }
+  else { const arr=state[coll]; const i=arr.findIndex(x=>x.id===obj.id); if(i>=0) arr[i]=obj; else arr.push(obj); lsSave(); renderAll(); }
+}
+async function delDoc(coll, id){
+  if(db){ await db.collection(coll).doc(id).delete(); }
+  else { state[coll]=state[coll].filter(x=>x.id!==id); lsSave(); renderAll(); }
+}
+async function saveSettings(){
+  if(db){ await db.doc("config/settings").set(state.settings); } else { lsSave(); }
+}
+
+function showBanner(text){ const b=$("#storeBanner"); b.textContent=text; b.hidden=!text; }
+
+async function initStore(){
+  lsLoad(); renderAll();
+  showBanner("Łączę z zapisem danych…");
+  let d = null;
+  try{ d = window.claude?.use ? await window.claude.use("db") : null; }catch(e){ d=null; }
+  if(!d){ mode="local"; showBanner("Dane zapisują się tylko w tej przeglądarce. Otwórz stronę w claude.ai po zalogowaniu, żeby zapisywały się na stałe i były dostępne na innych urządzeniach."); fillBackupSettings(); renderAll(); maybeAutoBackup(); return; }
+  db = d; mode="db"; showBanner("");
+  state.sales=[]; state.costs=[]; state.backups=[];
+  const onErr = e => showBanner("Nie udało się wczytać danych ("+(e?.code||"błąd")+"). Odśwież stronę.");
+  const loaded = {}, mark = (k,s) => { if(!s.metadata.fromCache && !loaded[k]){ loaded[k]=true; if(["sales","costs","backups","bstate"].every(x=>loaded[x])) maybeAutoBackup(); } };
+  db.collection("sales").limit(1000).onSnapshot(s => { state.sales = s.docs.map(x=>({...x.data(), id:x.id})); renderAll(); mark("sales",s); }, onErr);
+  db.collection("costs").limit(1000).onSnapshot(s => { state.costs = s.docs.map(x=>({...x.data(), id:x.id})); renderAll(); mark("costs",s); }, onErr);
+  db.collection("backups").limit(200).onSnapshot(s => { state.backups = s.docs.map(x=>({...x.data(), id:x.id})); renderBackups(); mark("backups",s); }, onErr);
+  db.doc("config/backupState").onSnapshot(s => { if(s.exists){ state.bstate={...BK_DEFAULT,...s.data()}; fillBackupSettings(); renderAll(); } mark("bstate",s); }, onErr);
+  db.doc("config/settings").onSnapshot(s => { if(s.exists){ const v=s.data(); state.settings={...DEFAULT_SETTINGS,...v,wages:{...DEFAULT_SETTINGS.wages,...(v.wages||{})}}; fillSettings(); renderAll(); } }, onErr);
+}
+
+// ---------- backups ----------
+const fmtDT = t => t ? new Date(t).toLocaleString("pl-PL",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "nigdy";
+const fmtSize = b => b>1048576 ? (b/1048576).toFixed(1).replace(".",",")+" MB" : Math.max(1,Math.round(b/1024))+" kB";
+function payload(){ return {version:1, app:"ewidencja-dn", exported:new Date().toISOString(), sales:state.sales, costs:state.costs, settings:state.settings}; }
+const hasData = () => state.sales.length + state.costs.length > 0;
+async function setBState(patch){
+  state.bstate={...state.bstate,...patch};
+  if(db) await db.doc("config/backupState").set(state.bstate); else lsSave();
+  renderAll();
+}
+let bkBusy=false;
+async function createBackup(kind){
+  const json=JSON.stringify(payload()), parts=Math.max(1,Math.ceil(json.length/CHUNK));
+  const id="b"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const meta={id, createdAt:Date.now(), kind, sales:state.sales.length, costs:state.costs.length, parts, bytes:new Blob([json]).size};
+  if(db){
+    for(let i=0;i<parts;i++) await db.collection("backupParts").doc(id+"-"+i).set({data:json.slice(i*CHUNK,(i+1)*CHUNK)});
+    await db.collection("backups").doc(id).set(meta);
+  } else { state.backups.push({...meta, json}); lsSave(); }
+  await pruneBackups(meta);
+  return meta;
+}
+async function pruneBackups(fresh){
+  const all=[...state.backups.filter(b=>b.id!==fresh.id), fresh].sort((a,b)=>b.createdAt-a.createdAt);
+  for(const b of all.slice(+state.bstate.keep||10)) await deleteBackup(b);
+}
+async function deleteBackup(b){
+  if(db){ for(let i=0;i<(b.parts||1);i++) await db.collection("backupParts").doc(b.id+"-"+i).delete(); await db.collection("backups").doc(b.id).delete(); }
+  else { state.backups=state.backups.filter(x=>x.id!==b.id); lsSave(); renderBackups(); }
+}
+async function readBackup(b){
+  if(!db) return b.json;
+  let s=""; for(let i=0;i<(b.parts||1);i++){ const d=await db.collection("backupParts").doc(b.id+"-"+i).get(); if(!d.exists) throw new Error("missing part"); s+=d.data().data; }
+  return s;
+}
+async function maybeAutoBackup(){
+  const bs=state.bstate; if(bkBusy || !hasData()) return;
+  if(bs.lastAutoAt && Date.now()-bs.lastAutoAt < (+bs.every||7)*DAY) return;
+  bkBusy=true;
+  try{ await createBackup("auto"); await setBState({lastAutoAt:Date.now()}); toast("Utworzono automatyczną kopię bezpieczeństwa"); }
+  catch(e){ $("#bkStatus").textContent="Automatyczna kopia nie powiodła się"; }
+  finally{ bkBusy=false; }
+}
+function externalDue(){
+  const bs=state.bstate; if(!hasData()) return false;
+  return !bs.lastExternalAt || Date.now()-bs.lastExternalAt >= (+bs.remindEvery||14)*DAY;
+}
+function reminderHTML(){
+  const bs=state.bstate;
+  const when = bs.lastExternalAt ? "Ostatnio potwierdziłeś to "+fmtDT(bs.lastExternalAt)+"." : "Jeszcze nie potwierdziłeś zapisania kopii poza aplikacją.";
+  return `<div class="alert warn"><strong>Przenieś kopię danych na nośnik zewnętrzny</strong>${when} Pobierz plik kopii, skopiuj go na pendrive, dysk zewnętrzny albo do chmury i potwierdź.<div class="btns" style="margin-top:8px"><button class="b sm" data-bk="download">Pobierz kopię</button><button class="b sm" data-bk="confirm">Kopia jest na nośniku</button></div></div>`;
+}
+async function downloadBackup(){
+  const ok = await download(`ewidencja-kopia-${today()}.json`, JSON.stringify(payload(),null,2));
+  if(ok){ await setBState({lastDownloadAt:Date.now()}); toast("Przenieś pobrany plik na nośnik zewnętrzny i potwierdź"); }
+}
+async function confirmExternal(){ await setBState({lastExternalAt:Date.now()}); toast("Zapisano potwierdzenie"); }
+async function restoreData(d){
+  const sales=(d.sales||[]).filter(s=>s.id&&s.date), costs=(d.costs||[]).filter(c=>c.id&&c.date);
+  if(db){
+    const keepS=new Set(sales.map(s=>s.id)), keepC=new Set(costs.map(c=>c.id));
+    for(const s of state.sales.filter(s=>!keepS.has(s.id))) await db.collection("sales").doc(s.id).delete();
+    for(const c of state.costs.filter(c=>!keepC.has(c.id))) await db.collection("costs").doc(c.id).delete();
+    for(const s of sales) await db.collection("sales").doc(s.id).set(s);
+    for(const c of costs) await db.collection("costs").doc(c.id).set(c);
+  } else { state.sales=sales; state.costs=costs; }
+  if(d.settings){ state.settings={...DEFAULT_SETTINGS,...d.settings}; await saveSettings(); fillSettings(); }
+  lsSave(); renderAll();
+}
+function fillBackupSettings(){ const bs=state.bstate; $("#bk_every").value=String(bs.every); $("#bk_keep").value=String(bs.keep); $("#bk_remind").value=String(bs.remindEvery); }
+function renderBackups(){
+  const bs=state.bstate, list=state.backups.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const next = bs.lastAutoAt ? bs.lastAutoAt+(+bs.every)*DAY : 0;
+  $("#bkSummary").innerHTML=[
+    ["Ostatnia kopia automatyczna", fmtDT(bs.lastAutoAt)],
+    ["Następna kopia automatyczna", !hasData()?"po dodaniu pierwszych danych":next&&next>Date.now()?"przy otwarciu po "+fmtDT(next):"przy najbliższym otwarciu"],
+    ["Ostatnio pobrana na dysk", fmtDT(bs.lastDownloadAt)],
+    ["Potwierdzona na nośniku zewnętrznym", fmtDT(bs.lastExternalAt)],
+  ].map(([k,v])=>`<tr><td class="muted" style="padding-left:0">${k}</td><td class="r num" style="padding-right:0">${v}</td></tr>`).join("");
+  $("#bkAlerts").innerHTML = externalDue() ? reminderHTML() : (hasData()?`<div class="alert ok"><strong>Kopia poza aplikacją jest aktualna</strong>Następne przypomnienie ${fmtDT(bs.lastExternalAt+(+bs.remindEvery)*DAY)}.</div>`:"");
+  $("#bkTable").innerHTML = list.length ? list.map(b=>`<tr data-bid="${esc(b.id)}"><td class="num">${fmtDT(b.createdAt)}</td><td>${BK_KIND[b.kind]||b.kind}</td><td class="r num">${b.sales}</td><td class="r num">${b.costs}</td><td class="r num">${fmtSize(b.bytes||0)}</td><td><div class="btns" style="flex-wrap:nowrap"><button class="b sm" data-bact="dl">Pobierz</button><button class="b sm" data-bact="restore">Przywróć</button><button class="b sm danger" data-bact="del">Usuń</button></div></td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">Brak zapisanych kopii. Pierwsza kopia automatyczna powstanie po dodaniu danych, możesz też utworzyć ją teraz.</td></tr>`;
+}
+
+// ---------- calculations ----------
+function yearSales(y=state.year){ return state.sales.filter(s=>yearOf(s.date)===y).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.createdAt||0)-(b.createdAt||0)); }
+function yearCosts(y=state.year){ return state.costs.filter(c=>yearOf(c.date)===y).sort((a,b)=>a.date<b.date?-1:1); }
+function quarters(y=state.year){
+  const lim=quarterLimit(y);
+  return [1,2,3,4].map(q=>{
+    const list=yearSales(y).filter(s=>isBiz(s)&&quarterOf(s.date)===q);
+    let cum=0, exceededOn=null;
+    for(const s of list){ cum+=revenue(s); if(!exceededOn && cum>lim+0.004) exceededOn=s.date; }
+    return {q, rev:cum, lim, exceededOn};
+  });
+}
+function addDays(iso,n){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function kasaBase(y=state.year){ return yearSales(y).filter(s=>isBiz(s)&&s.buyerType!=="firma"&&(s.pay==="gotowka"||s.delivery==="osobisty")).reduce((a,s)=>a+revenue(s),0); }
+
+// ---------- render ----------
+function setMeter(el, ratio){ el.classList.remove("warn","crit"); if(ratio>1) el.classList.add("crit"); else if(ratio>=0.8) el.classList.add("warn"); el.querySelector("i").style.width=Math.min(100,ratio*100)+"%"; }
+function statusPill(ratio){ return ratio>1?'<span class="pill crit">przekroczony</span>':ratio>=0.8?'<span class="pill warn">blisko limitu</span>':'<span class="pill ok">w limicie</span>'; }
+
+function renderPulpit(){
+  const y=state.year, qs=quarters(y), now=new Date();
+  const curQ = (y===now.getFullYear()) ? Math.floor(now.getMonth()/3)+1 : 4;
+  const cq = qs[curQ-1], ratio = cq.lim? cq.rev/cq.lim : 0;
+  $("#qTitle").textContent = (y===now.getFullYear()?"Bieżący kwartał":"Ostatni kwartał")+" · "+["I","II","III","IV"][curQ-1]+" "+y;
+  $("#qRevenue").textContent = fmt(cq.rev);
+  $("#qLimit").textContent = fmt(cq.lim);
+  $("#qLeft").textContent = fmt(Math.max(0,cq.lim-cq.rev));
+  setMeter($("#qMeter"), ratio);
+  $("#qPill").outerHTML = '<span id="qPill" class="pill '+(ratio>1?"crit":ratio>=.8?"warn":"ok")+'">'+pct(ratio)+'</span>';
+  $("#limitNote").textContent = y>=2026 ? "Limit: 225% × "+fmt(wageFor(y))+" = "+fmt(quarterLimit(y))+" na kwartał" : "W "+y+" r. obowiązywał limit miesięczny 75% minimalnego wynagrodzenia ("+fmt(wageFor(y)*0.75)+"). Tabela pokazuje go w ujęciu kwartalnym.";
+  $("#qTable").innerHTML = qs.map(q=>`<tr><td>${["I","II","III","IV"][q.q-1]} kwartał</td><td class="r num">${fmt(q.rev)}</td><td class="r num">${fmt(q.lim)}</td><td class="r num">${pct(q.lim?q.rev/q.lim:0)}</td><td>${statusPill(q.lim?q.rev/q.lim:0)}</td></tr>`).join("");
+
+  const kb=kasaBase(y), kr=kb/KASA_LIMIT;
+  $("#kasaVal").textContent=fmt(kb); setMeter($("#kasaMeter"),kr);
+  $("#kasaPill").outerHTML='<span id="kasaPill" class="pill '+(kr>1?"crit":kr>=.8?"warn":"ok")+'">'+pct(kr)+'</span>';
+
+  const ys=yearSales(y), biz=ys.filter(isBiz), rev=biz.reduce((a,s)=>a+revenue(s),0);
+  const costs=yearCosts(y).reduce((a,c)=>a+(+c.amount||0),0)+biz.reduce((a,s)=>a+(+s.cost||0),0);
+  const docsPending = biz.filter(s=>s.buyerType==="firma"&&!s.docNo).length;
+  $("#yearStats").innerHTML = [
+    ["Przychód z działalności", fmt(rev)],
+    ["Koszty", fmt(costs)],
+    ["Dochód", fmt(rev-costs)],
+    ["Liczba sprzedaży", biz.length+(ys.length>biz.length?` (+${ys.length-biz.length} prywatnych)`:"")],
+    ["Zwolnienie z VAT", pct(rev/VAT_LIMIT)+" z 240 000 zł"],
+  ].map(([k,v])=>`<tr><td class="muted" style="padding-left:0">${k}</td><td class="r num" style="padding-right:0">${v}</td></tr>`).join("");
+
+  // DAC7
+  const eur=+state.settings.eur||4.25, by={};
+  for(const s of ys){ if(NON_DAC7.has(s.platform)) continue; const p=by[s.platform]||(by[s.platform]={n:0,sum:0}); p.n++; p.sum+=revenue(s); }
+  const rows=Object.entries(by).sort((a,b)=>b[1].sum-a[1].sum);
+  $("#dacTable").innerHTML = rows.length ? rows.map(([p,v])=>{
+    const e=v.sum/eur, hit=v.n>=DAC7_COUNT||e>DAC7_EUR, near=!hit&&(v.n>=DAC7_COUNT*0.8||e>=DAC7_EUR*0.8);
+    return `<tr><td>${esc(p)}</td><td class="r num">${v.n} / ${DAC7_COUNT}</td><td class="r num">${fmt(v.sum)}</td><td class="r num">${fmtE(e)}</td><td>${hit?'<span class="pill info">zgłosi do KAS</span>':near?'<span class="pill warn">blisko progu</span>':'<span class="pill">poniżej progu</span>'}</td></tr>`;
+  }).join("") : `<tr><td colspan="5" class="empty">Brak sprzedaży przez platformy w ${y} r.</td></tr>`;
+
+  // alerts
+  const al=[];
+  for(const q of qs){
+    if(q.exceededOn){ const dl=addDays(q.exceededOn,7); al.push(["crit",`Limit przekroczony w ${["I","II","III","IV"][q.q-1]} kwartale ${y} r. (${plDate(q.exceededOn)})`,`Od tego dnia sprzedaż jest działalnością gospodarczą. Wniosek do CEIDG trzeba złożyć w ciągu 7 dni, czyli do ${plDate(dl)}.`]); }
+  }
+  if(!cq.exceededOn && ratio>=0.8) al.push(["warn",`Wykorzystałeś ${pct(ratio)} limitu w tym kwartale`,`Zostało ${fmt(cq.lim-cq.rev)}. Większą sprzedaż rozważ przesunąć na następny kwartał.`]);
+  if(kr>1) al.push(["crit","Przekroczony limit zwolnienia z kasy fiskalnej",`Sprzedaż osobom prywatnym poza zwolnieniem wysyłkowym wynosi ${fmt(kb)}. Sprawdź obowiązek kasy fiskalnej.`]);
+  else if(kr>=0.8) al.push(["warn","Zbliżasz się do limitu kasy fiskalnej",`Sprzedaż gotówkowa lub z odbiorem osobistym: ${fmt(kb)} z 20 000 zł. Przyjmuj zapłatę przelewem przy wysyłce, żeby korzystać ze zwolnienia.`]);
+  if(docsPending) al.push(["warn",`${docsPending} ${docsPending===1?"sprzedaż":"sprzedaże"} dla firm bez dokumentu`,"Firmy zwykle potrzebują rachunku albo faktury. Wystawisz je w zakładce Rachunki i faktury."]);
+  const dacHit=rows.filter(([,v])=>v.n>=DAC7_COUNT||v.sum/eur>DAC7_EUR).map(([p])=>p);
+  if(dacHit.length) al.push(["info",`DAC7: ${dacHit.join(", ")} przekaże Twoje dane do KAS za ${y} r.`,"Nie oznacza to podatku, ale dane z platformy powinny zgadzać się z ewidencją i PIT-36."]);
+  if(!state.sales.length) al.push(["info","Zacznij od dodania pierwszej sprzedaży","Zakładka Sprzedaż. Pulpit przeliczy limit, kasę fiskalną i DAC7 automatycznie."]);
+  $("#alerts").innerHTML = (externalDue()?reminderHTML():"") + (al.map(([k,t,d])=>`<div class="alert ${k==="info"?"":k}"><strong>${esc(t)}</strong>${esc(d)}</div>`).join("") || `<div class="alert ok"><strong>Wszystko w normie</strong>Przychód w limicie, bez sygnałów o kasie fiskalnej i brakujących dokumentach.</div>`);
+}
+
+function renderSales(){
+  $("#salesYear").textContent=state.year;
+  const fq=$("#salesFilter").value||"", words=norm(fq).split(/\s+/).filter(Boolean);
+  const list=yearSales().slice().reverse().filter(s=>{ if(!words.length) return true; const hay=norm([s.buyerName,s.item,s.platform,s.docNo,s.notes,s.buyerAddr,s.buyerNip].join(" ")); return words.every(w=>hay.includes(w)); });
+  const f=words.length;
+  $("#salesTable").innerHTML = list.length ? list.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}</td><td>${esc(s.platform)}</td><td>${s.buyerName?esc(s.buyerName):'<span class="muted">—</span>'}</td><td class="r num">${fmt(revenue(s))}${+s.refund?` <span class="pill warn">zwrot</span>`:""}</td><td>${PAY_LABEL[s.pay]||""}</td><td>${s.docNo?esc(s.docNo):'<span class="muted">—</span>'}</td><td>${isBiz(s)?'<span class="pill info">działalność</span>':'<span class="pill">prywatna</span>'}</td></tr>`).join("")
+    : `<tr><td colspan="8" class="empty">${f?"Nic nie pasuje do wyszukiwania.":"Brak sprzedaży w "+state.year+" r. Dodaj pierwszą w formularzu powyżej."}</td></tr>`;
+}
+function renderCosts(){
+  $("#costsYear").textContent=state.year;
+  const list=yearCosts().slice().reverse();
+  $("#costsTable").innerHTML = list.length ? list.map(c=>`<tr class="click" data-id="${esc(c.id)}" tabindex="0"><td class="num">${plDate(c.date)}</td><td class="wrap-txt">${esc(c.desc)}</td><td>${CAT_LABEL[c.cat]||""}</td><td class="r num">${fmt(c.amount)}</td><td>${esc(c.ref)}</td></tr>`).join("")
+    : `<tr><td colspan="5" class="empty">Brak kosztów w ${state.year} r. Koszt zakupu towaru możesz też wpisać bezpośrednio przy sprzedaży.</td></tr>`;
+}
+function ewRows(){
+  const by=new Map();
+  for(const s of yearSales().filter(isBiz)){ const r=by.get(s.date)||{date:s.date,rev:0,docs:[]}; r.rev+=revenue(s); if(s.docNo) r.docs.push(s.docNo); by.set(s.date,r); }
+  let cum=0, qcum=0, lastQ=0, i=0;
+  return [...by.values()].sort((a,b)=>a.date<b.date?-1:1).map(r=>{ const q=quarterOf(r.date); if(q!==lastQ){qcum=0;lastQ=q;} cum+=r.rev; qcum+=r.rev; return {...r, lp:++i, cum, qcum}; });
+}
+function renderEw(){
+  $("#ewYear").textContent=state.year;
+  const rows=ewRows(), lim=quarterLimit(state.year);
+  $("#ewTable").innerHTML = rows.length ? rows.map(r=>`<tr><td class="num">${r.lp}</td><td class="num">${plDate(r.date)}</td><td class="r num">${fmt(r.rev)}</td><td class="r num">${fmt(r.cum)}</td><td class="r num" style="${r.qcum>lim?"color:var(--crit);font-weight:600":""}">${fmt(r.qcum)}</td><td>${esc(r.docs.join(", "))}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">Ewidencja wypełni się sama po dodaniu sprzedaży.</td></tr>`;
+  $("#ewFoot").innerHTML = rows.length ? `<tr><td colspan="2">Razem ${state.year}</td><td class="r num">${fmt(rows.at(-1).cum)}</td><td></td><td></td><td></td></tr>` : "";
+}
+function renderPit(){
+  const y=state.year; $("#pitYear").textContent=y;
+  const ys=yearSales(y), biz=ys.filter(isBiz);
+  const rev=biz.reduce((a,s)=>a+revenue(s),0);
+  const cats={}; for(const c of yearCosts(y)) cats[c.cat]=(cats[c.cat]||0)+(+c.amount||0);
+  const saleCost=biz.reduce((a,s)=>a+(+s.cost||0),0); if(saleCost) cats.towar=(cats.towar||0)+saleCost;
+  const cost=Object.values(cats).reduce((a,b)=>a+b,0), inc=rev-cost;
+  $("#pitTable").innerHTML=[["Przychód",fmt(rev)],["Koszty uzyskania przychodu",fmt(cost)],[inc>=0?"Dochód":"Strata",fmt(Math.abs(inc))],["Termin złożenia PIT-36","30.04."+(y+1)]].map(([k,v])=>`<tr><td>${k}</td><td class="r num" style="font-weight:600">${v}</td></tr>`).join("");
+  const ce=Object.entries(cats).filter(([,v])=>v);
+  $("#pitCosts").innerHTML = ce.length ? ce.map(([k,v])=>`<tr><td>${CAT_LABEL[k]||k}</td><td class="r num">${fmt(v)}</td></tr>`).join("") : `<tr><td colspan="2" class="empty">Brak kosztów.</td></tr>`;
+  const priv=ys.filter(s=>!isBiz(s));
+  $("#pitPrivate").textContent = priv.length ? `${priv.length} sprzedaży oznaczonych jako rzeczy prywatne, razem ${fmt(priv.reduce((a,s)=>a+revenue(s),0))}. Nie wchodzą do limitu ani do powyższego przychodu. Rzeczy sprzedane przed upływem 6 miesięcy od końca miesiąca zakupu wykazuje się w PIT-36 jako odpłatne zbycie.` : "Brak sprzedaży oznaczonych jako rzeczy prywatne.";
+}
+
+// ---------- documents ----------
+function nextDocNo(type, y){
+  const pre = type==="faktura"?"F":"R";
+  const re = new RegExp("^"+pre+"\\/(\\d+)\\/"+y+"$");
+  let max=0; for(const s of state.sales){ const m=re.exec(s.docNo||""); if(m) max=Math.max(max,+m[1]); }
+  return `${pre}/${max+1}/${y}`;
+}
+function payText(s){ return s.pay==="gotowka"?"gotówka":s.pay==="pobranie"?"za pobraniem":s.pay==="platforma"?"przelew przez "+(s.platform||"platformę"):"przelew"; }
+function renderDocSelect(keep){
+  const sel=$("#d_sale"), cur=keep||sel.value;
+  const list=yearSales().filter(isBiz).slice().reverse();
+  sel.innerHTML = '<option value="">Wybierz sprzedaż…</option>'+list.map(s=>`<option value="${esc(s.id)}">${plDate(s.date)} · ${esc(s.item).slice(0,40)} · ${fmt(revenue(s))}${s.docNo?" · "+esc(s.docNo):""}</option>`).join("");
+  if(cur && list.some(s=>s.id===cur)) sel.value=cur;
+}
+function docData(){
+  const s=state.sales.find(x=>x.id===$("#d_sale").value); if(!s) return null;
+  return {s, type:$("#d_type").value, no:$("#d_no").value.trim(), date:$("#d_date").value||today(), pay:$("#d_payText").value};
+}
+function docHTML(d){
+  const st=state.settings, s=d.s, isF=d.type==="faktura";
+  const lines=[{n:s.item,q:1,v:+s.price||0}]; if(+s.ship) lines.push({n:"Koszt wysyłki",q:1,v:+s.ship});
+  if(+s.refund) lines.push({n:"Zwrot / korekta",q:1,v:-(+s.refund)});
+  const total=lines.reduce((a,l)=>a+l.v*l.q,0);
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;color:#111;max-width:720px">
+  <div style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:22px">
+    <div><div style="font-size:22px;font-weight:700">${isF?"Faktura":"Rachunek"} nr ${esc(d.no)}</div>${isF?'<div style="color:#555">bez podatku VAT</div>':""}</div>
+    <div style="text-align:right">Data wystawienia: <b>${plDate(d.date)}</b><br>Data sprzedaży: <b>${plDate(s.date)}</b></div>
+  </div>
+  <div style="display:flex;gap:30px;flex-wrap:wrap;margin-bottom:22px">
+    <div style="flex:1;min-width:220px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666">Sprzedawca</div><b>${esc(st.name)||"<i style='color:#b3261e'>uzupełnij w Ustawieniach</i>"}</b><br>${esc(st.addr)}${isF&&st.nip?"<br>NIP: "+esc(st.nip):""}</div>
+    <div style="flex:1;min-width:220px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666">Nabywca</div><b>${esc(s.buyerName)||"—"}</b><br>${esc(s.buyerAddr)}${s.buyerNip?"<br>NIP: "+esc(s.buyerNip):""}</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:6px;background:#eef1f4">Lp.</th><th style="text-align:left;padding:6px;background:#eef1f4">Nazwa towaru lub usługi</th><th style="text-align:right;padding:6px;background:#eef1f4">Ilość</th><th style="text-align:right;padding:6px;background:#eef1f4">Cena</th><th style="text-align:right;padding:6px;background:#eef1f4">Wartość</th></tr></thead>
+  <tbody>${lines.map((l,i)=>`<tr><td style="padding:6px;border-bottom:1px solid #ccc">${i+1}</td><td style="padding:6px;border-bottom:1px solid #ccc;white-space:normal">${esc(l.n)}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${l.q} szt.</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${fmt(l.v)}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${fmt(l.v*l.q)}</td></tr>`).join("")}</tbody></table>
+  <div style="text-align:right;font-size:16px;margin:14px 0">Do zapłaty: <b>${fmt(total)}</b></div>
+  <div>Sposób zapłaty: ${esc(d.pay)}${st.account&&!/gotówka/.test(d.pay)?"<br>Numer konta: "+esc(st.account):""}</div>
+  ${isF?'<div style="margin-top:10px">Podstawa zwolnienia z VAT: art. 113 ust. 1 ustawy z dnia 11 marca 2004 r. o podatku od towarów i usług.</div>':'<div style="margin-top:10px;color:#444">Sprzedaż w ramach działalności nierejestrowanej (art. 5 ust. 1 ustawy Prawo przedsiębiorców). Sprzedawca zwolniony z VAT na podstawie art. 113 ust. 1 ustawy o VAT.</div>'}
+  <div style="display:flex;justify-content:space-between;margin-top:60px;color:#555;font-size:12px"><div style="border-top:1px solid #999;padding-top:4px;width:200px;text-align:center">podpis wystawcy</div><div style="border-top:1px solid #999;padding-top:4px;width:200px;text-align:center">podpis odbiorcy</div></div>
+</div>`;
+}
+function docText(d){
+  const st=state.settings, s=d.s, isF=d.type==="faktura";
+  return `${isF?"FAKTURA (bez VAT)":"RACHUNEK"} nr ${d.no}\nData wystawienia: ${plDate(d.date)}  Data sprzedaży: ${plDate(s.date)}\n\nSprzedawca: ${st.name}, ${st.addr}${isF&&st.nip?", NIP "+st.nip:""}\nNabywca: ${s.buyerName||"—"}${s.buyerAddr?", "+s.buyerAddr:""}${s.buyerNip?", NIP "+s.buyerNip:""}\n\n1. ${s.item} — ${fmt(s.price)}${+s.ship?"\n2. Koszt wysyłki — "+fmt(s.ship):""}${+s.refund?"\nZwrot — -"+fmt(s.refund):""}\n\nDo zapłaty: ${fmt(revenue(s))}\nSposób zapłaty: ${d.pay}\nPodstawa zwolnienia z VAT: art. 113 ust. 1 ustawy o VAT.`;
+}
+function renderDocPreview(){
+  const d=docData();
+  $("#docPreview").innerHTML = d ? docHTML(d) : '<div class="empty" style="color:#555">Wybierz sprzedaż, a tu pojawi się podgląd dokumentu.</div>';
+}
+function loadDocFor(id){
+  const s=state.sales.find(x=>x.id===id); if(!s) return;
+  $("#d_sale").value=id;
+  $("#d_type").value = s.docType || (s.buyerType==="firma"&&state.settings.nip?"faktura":"rachunek");
+  $("#d_no").value = s.docNo || nextDocNo($("#d_type").value, yearOf(s.date));
+  $("#d_date").value = today();
+  $("#d_payText").value = payText(s);
+  renderDocPreview();
+}
+
+function renderAll(){
+  renderYearSelect(); renderPulpit(); renderSales(); renderCosts(); renderEw(); renderPit(); renderDocSelect(); renderDocPreview(); renderBackups();
+}
+function renderYearSelect(){
+  const ys=new Set([new Date().getFullYear(), state.year]); for(const s of state.sales) ys.add(yearOf(s.date)); for(const c of state.costs) ys.add(yearOf(c.date));
+  const sel=$("#year"), arr=[...ys].filter(Boolean).sort((a,b)=>b-a);
+  const html=arr.map(y=>`<option value="${y}">${y}</option>`).join(""); if(sel.innerHTML!==html) sel.innerHTML=html; sel.value=state.year;
+}
+
+// ---------- forms ----------
+const SALE_FIELDS=["date","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAddr","buyerNip","docType","docNo","notes"];
+const NUMS=new Set(["price","ship","cost","refund","amount","eur"]);
+function resetSale(){ $("#saleForm").reset(); $("#s_id").value=""; $("#s_date").value=today(); $("#saleFormTitle").textContent="Nowa sprzedaż"; $("#saleDelete").hidden=true; $("#saleDoc").hidden=true; $("#saleDelete").dataset.armed=""; $("#saleDelete").textContent="Usuń"; }
+function editSale(id){
+  const s=state.sales.find(x=>x.id===id); if(!s) return;
+  $("#s_id").value=s.id; for(const f of SALE_FIELDS){ const el=$("#s_"+f); if(el) el.value = s[f] ?? (NUMS.has(f)?0:""); }
+  $("#saleFormTitle").textContent="Edycja sprzedaży"; $("#saleDelete").hidden=false; $("#saleDoc").hidden=!isBiz(s);
+  $("#saleForm").scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("#saleForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const id=$("#s_id").value||uid(), old=state.sales.find(x=>x.id===id);
+  const o={id, createdAt: old?.createdAt||Date.now()};
+  for(const f of SALE_FIELDS){ const v=$("#s_"+f).value; o[f]=NUMS.has(f)?(+v||0):v.trim(); }
+  if(o.docType && !o.docNo) o.docNo = nextDocNo(o.docType, yearOf(o.date));
+  $("#saleStatus").textContent="Zapisuję…";
+  try{ await putDoc("sales",o); $("#saleStatus").textContent=""; toast(old?"Zapisano zmiany":"Dodano sprzedaż"); if(yearOf(o.date)!==state.year){ state.year=yearOf(o.date); renderAll(); } resetSale(); }
+  catch(err){ $("#saleStatus").textContent="Nie zapisano: "+(err?.code==="quota_exceeded"?"brak miejsca w bazie":"spróbuj ponownie"); }
+});
+$("#saleReset").onclick=resetSale;
+$("#saleDelete").onclick=async ()=>{
+  const b=$("#saleDelete"); if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Kliknij ponownie, aby usunąć"; return; }
+  await delDoc("sales",$("#s_id").value); toast("Usunięto sprzedaż"); resetSale();
+};
+$("#saleDoc").onclick=()=>{ const id=$("#s_id").value; switchTab("dokumenty"); renderDocSelect(id); loadDocFor(id); };
+function rowClick(tbody, fn){ tbody.addEventListener("click",e=>{ const tr=e.target.closest("tr[data-id]"); if(tr) fn(tr.dataset.id); }); tbody.addEventListener("keydown",e=>{ if(e.key==="Enter"){ const tr=e.target.closest("tr[data-id]"); if(tr) fn(tr.dataset.id); } }); }
+rowClick($("#salesTable"), editSale);
+$("#salesFilter").addEventListener("input", renderSales);
+
+const COST_FIELDS=["date","desc","cat","amount","ref"];
+function resetCost(){ $("#costForm").reset(); $("#c_id").value=""; $("#c_date").value=today(); $("#costFormTitle").textContent="Nowy koszt"; $("#costDelete").hidden=true; $("#costDelete").dataset.armed=""; $("#costDelete").textContent="Usuń"; }
+rowClick($("#costsTable"), id=>{ const c=state.costs.find(x=>x.id===id); if(!c) return; $("#c_id").value=c.id; for(const f of COST_FIELDS) $("#c_"+f).value=c[f]??""; $("#costFormTitle").textContent="Edycja kosztu"; $("#costDelete").hidden=false; $("#costForm").scrollIntoView({behavior:"smooth",block:"start"}); });
+$("#costForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const o={id:$("#c_id").value||uid()}; for(const f of COST_FIELDS){ const v=$("#c_"+f).value; o[f]=NUMS.has(f)?(+v||0):v.trim(); }
+  try{ await putDoc("costs",o); toast("Zapisano koszt"); resetCost(); }catch(err){ $("#costStatus").textContent="Nie zapisano, spróbuj ponownie"; }
+});
+$("#costReset").onclick=resetCost;
+$("#costDelete").onclick=async ()=>{ const b=$("#costDelete"); if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Kliknij ponownie, aby usunąć"; return; } await delDoc("costs",$("#c_id").value); toast("Usunięto koszt"); resetCost(); };
+
+// documents
+$("#d_sale").addEventListener("change", e=>loadDocFor(e.target.value));
+$("#d_type").addEventListener("change", ()=>{ const d=docData(); if(d && (!d.s.docNo || d.s.docType!==d.type)) $("#d_no").value=nextDocNo(d.type, yearOf(d.s.date)); renderDocPreview(); });
+for(const id of ["#d_no","#d_date","#d_payText"]) $(id).addEventListener("input", renderDocPreview);
+$("#docAssign").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } await putDoc("sales",{...d.s, docType:d.type, docNo:d.no}); toast("Zapisano "+d.no+" przy sprzedaży"); };
+$("#docCopy").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } try{ await navigator.clipboard.writeText(docText(d)); toast("Skopiowano"); }catch(e){ toast("Nie udało się skopiować"); } };
+$("#docDownload").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; }
+  const html=`<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>${esc(d.no)}</title><style>body{margin:40px;background:#fff}@media print{body{margin:15mm}}</style></head><body>${docHTML(d)}</body></html>`;
+  await download(`${d.type}-${d.no.replace(/\//g,"-")}.html`, html); };
+
+// settings
+function fillSettings(){
+  const st=state.settings; $("#st_name").value=st.name||""; $("#st_addr").value=st.addr||""; $("#st_nip").value=st.nip||""; $("#st_account").value=st.account||""; $("#st_eur").value=st.eur||4.25;
+  const ys=Object.keys(st.wages||{}).sort(); const cy=String(new Date().getFullYear()+1); if(!ys.includes(cy)) ys.push(cy);
+  $("#wageFields").innerHTML=ys.map(y=>`<label>${y} r. (zł)<input type="number" step="0.01" id="wage_${y}" data-year="${y}" value="${st.wages?.[y]??""}"></label>`).join("");
+}
+$("#setForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const wages={}; document.querySelectorAll("#wageFields input").forEach(i=>{ if(+i.value) wages[i.dataset.year]=+i.value; });
+  state.settings={name:$("#st_name").value.trim(),addr:$("#st_addr").value.trim(),nip:$("#st_nip").value.trim(),account:$("#st_account").value.trim(),eur:+$("#st_eur").value||4.25,wages};
+  try{ await saveSettings(); toast("Zapisano ustawienia"); renderAll(); }catch(err){ $("#setStatus").textContent="Nie zapisano, spróbuj ponownie"; }
+});
+
+// downloads
+async function download(filename, data){
+  let dl=null; try{ dl=await window.claude?.use?.("downloads"); }catch(e){}
+  if(!dl){ toast("Pobieranie nie jest dostępne w tym widoku"); return false; }
+  try{ await dl.save({filename, data}); toast("Zapisano plik"); return true; }catch(e){ if(e?.code!=="declined") toast("Nie udało się pobrać pliku"); return false; }
+}
+const csvCell=v=>{ const s=String(v??""); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+const csv=rows=>"﻿"+rows.map(r=>r.map(csvCell).join(";")).join("\r\n");
+const n2=v=>(Math.round((+v||0)*100)/100).toFixed(2).replace(".",",");
+$("#salesCsv").onclick=()=>download(`sprzedaz-${state.year}.csv`, csv([["Data","Przedmiot","Platforma","Cena","Wysyłka","Zwrot","Przychód","Płatność","Dostawa","Kupujący","Rodzaj","Koszt zakupu","Dokument","Numer","Nabywca","Uwagi"],...yearSales().map(s=>[s.date,s.item,s.platform,n2(s.price),n2(s.ship),n2(s.refund),n2(revenue(s)),PAY_LABEL[s.pay]||"",s.delivery,s.buyerType,isBiz(s)?"działalność":"prywatna",n2(s.cost),s.docType,s.docNo,s.buyerName,s.notes])]));
+$("#costsCsv").onclick=()=>download(`koszty-${state.year}.csv`, csv([["Data","Opis","Kategoria","Kwota","Dowód"],...yearCosts().map(c=>[c.date,c.desc,CAT_LABEL[c.cat]||c.cat,n2(c.amount),c.ref])]));
+$("#ewCsv").onclick=()=>download(`ewidencja-sprzedazy-${state.year}.csv`, csv([["Lp.","Data","Przychód z dnia","Narastająco w roku","Narastająco w kwartale","Dokumenty"],...ewRows().map(r=>[r.lp,r.date,n2(r.rev),n2(r.cum),n2(r.qcum),r.docs.join(", ")])]));
+$("#backupDl").onclick=downloadBackup;
+$("#bkConfirm").onclick=confirmExternal;
+document.addEventListener("click", e=>{ const b=e.target.closest("[data-bk]"); if(!b) return; if(b.dataset.bk==="download") downloadBackup(); else confirmExternal(); });
+$("#bkNow").onclick=async ()=>{
+  if(bkBusy) return; bkBusy=true; $("#bkStatus").textContent="Tworzę kopię…";
+  try{ await createBackup("manual"); $("#bkStatus").textContent=""; toast("Utworzono kopię"); }
+  catch(e){ $("#bkStatus").textContent="Nie udało się utworzyć kopii"+(e?.code==="quota_exceeded"?": brak miejsca, usuń starsze kopie":""); }
+  finally{ bkBusy=false; renderBackups(); }
+};
+for(const [id,key] of [["#bk_every","every"],["#bk_keep","keep"],["#bk_remind","remindEvery"]]) $(id).addEventListener("change", e=>setBState({[key]:+e.target.value}).then(()=>toast("Zapisano ustawienia kopii")));
+$("#bkTable").addEventListener("click", async e=>{
+  const btn=e.target.closest("[data-bact]"); if(!btn) return;
+  const b=state.backups.find(x=>x.id===btn.closest("tr").dataset.bid); if(!b) return;
+  const act=btn.dataset.bact;
+  if(act!=="dl" && !btn.dataset.armed){ btn.dataset.armed="1"; btn.textContent=act==="restore"?"Na pewno przywrócić?":"Na pewno usunąć?"; return; }
+  if(bkBusy) return; bkBusy=true;
+  try{
+    if(act==="dl"){ const json=await readBackup(b); const ok=await download(`ewidencja-kopia-${new Date(b.createdAt).toISOString().slice(0,10)}.json`, JSON.stringify(JSON.parse(json),null,2)); if(ok) await setBState({lastDownloadAt:Date.now()}); }
+    else if(act==="restore"){ $("#bkStatus").textContent="Przywracam…"; const d=JSON.parse(await readBackup(b)); await createBackup("pre"); await restoreData(d); $("#bkStatus").textContent=""; toast("Przywrócono dane z "+fmtDT(b.createdAt)); }
+    else { await deleteBackup(b); toast("Usunięto kopię"); }
+  }catch(err){ $("#bkStatus").textContent="Operacja nie powiodła się, spróbuj ponownie"; }
+  finally{ bkBusy=false; renderBackups(); }
+});
+$("#backupUp").addEventListener("change", async e=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  try{ const d=JSON.parse(await f.text()); let n=0;
+    if(!Array.isArray(d.sales) && !Array.isArray(d.costs)) throw new Error("bad file");
+    if(hasData()) await createBackup("import");
+    for(const s of d.sales||[]){ if(s.id&&s.date){ await putDoc("sales",s); n++; } }
+    for(const c of d.costs||[]){ if(c.id&&c.date){ await putDoc("costs",c); n++; } }
+    if(d.settings){ state.settings={...DEFAULT_SETTINGS,...d.settings}; await saveSettings(); fillSettings(); }
+    toast(`Wczytano ${n} wpisów`); renderAll();
+  }catch(err){ toast("To nie jest poprawny plik kopii"); }
+  e.target.value="";
+});
+
+// tabs & year
+function switchTab(t){ state.tab=t; document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t)); document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==t); try{ localStorage.setItem(LS+"-tab",t); }catch(e){} }
+$("#tabs").addEventListener("click", e=>{ const b=e.target.closest("button[data-tab]"); if(b) switchTab(b.dataset.tab); });
+$("#year").addEventListener("change", e=>{ state.year=+e.target.value; renderAll(); });
+
+// boot
+const s_plat=$("#s_platform"); s_plat.innerHTML=PLATFORMS.map(p=>`<option>${p}</option>`).join("");
+resetSale(); resetCost(); fillSettings(); fillBackupSettings();
+const hashTab=(location.hash||"").slice(1); let saved=null; try{ saved=localStorage.getItem(LS+"-tab"); }catch(e){}
+switchTab(document.querySelector(`[data-panel="${hashTab}"]`)?hashTab:(saved&&document.querySelector(`[data-panel="${saved}"]`)?saved:"pulpit"));
+initStore();
+})();
+</script>
