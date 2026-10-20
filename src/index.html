@@ -280,6 +280,7 @@ button.b:disabled{opacity:.5;cursor:default}
           <summary class="small" style="cursor:pointer;font-weight:600">Dane kupującego i dokument</summary>
           <div class="fields" style="margin-top:10px">
             <label>Imię i nazwisko / firma<input id="s_buyerName" placeholder="np. Jan Kowalski"></label>
+            <label>Konto na portalu<input id="s_buyerAccount" placeholder="np. jan_k123"></label>
             <label style="grid-column:span 2">Adres<input id="s_buyerAddr"></label>
             <label>NIP kupującego<input id="s_buyerNip" inputmode="numeric"></label>
             <label>Dokument<select id="s_docType">
@@ -301,7 +302,7 @@ button.b:disabled{opacity:.5;cursor:default}
     </div>
     <div class="card">
       <div class="row"><h2>Sprzedaże w roku <span id="salesYear"></span></h2>
-        <div class="btns"><input id="salesFilter" type="search" placeholder="Szukaj: imię i nazwisko, przedmiot, nr…" style="width:260px"><button class="b sm" id="salesCsv">Pobierz CSV</button></div></div>
+        <div class="btns"><input id="salesFilter" type="search" placeholder="Szukaj: imię i nazwisko, konto, przedmiot, nr…" style="width:260px"><button class="b sm" id="salesCsv">Pobierz CSV</button></div></div>
       <div class="tablewrap"><table><thead><tr><th>Data</th><th>Przedmiot</th><th>Platforma</th><th>Kupujący</th><th class="r">Przychód</th><th>Płatność</th><th>Dokument</th><th>Rodzaj</th></tr></thead><tbody id="salesTable"></tbody></table></div>
       <div class="small muted">Kliknij wiersz, żeby go edytować.</div>
     </div>
@@ -712,9 +713,9 @@ function renderPulpit(){
 function renderSales(){
   $("#salesYear").textContent=state.year;
   const fq=$("#salesFilter").value||"", words=norm(fq).split(/\s+/).filter(Boolean);
-  const list=yearSales().slice().reverse().filter(s=>{ if(!words.length) return true; const hay=norm([s.buyerName,s.item,s.platform,s.docNo,s.notes,s.buyerAddr,s.buyerNip].join(" ")); return words.every(w=>hay.includes(w)); });
+  const list=yearSales().slice().reverse().filter(s=>{ if(!words.length) return true; const hay=norm([s.buyerName,s.buyerAccount,s.item,s.platform,s.docNo,s.notes,s.buyerAddr,s.buyerNip].join(" ")); return words.every(w=>hay.includes(w)); });
   const f=words.length;
-  $("#salesTable").innerHTML = list.length ? list.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}</td><td>${esc(s.platform)}</td><td>${s.buyerName?esc(s.buyerName):'<span class="muted">—</span>'}</td><td class="r num">${fmt(revenue(s))}${+s.refund?` <span class="pill warn">zwrot</span>`:""}</td><td>${PAY_LABEL[s.pay]||""}</td><td>${s.docNo?esc(s.docNo):'<span class="muted">—</span>'}</td><td>${isBiz(s)?'<span class="pill info">działalność</span>':'<span class="pill">prywatna</span>'}</td></tr>`).join("")
+  $("#salesTable").innerHTML = list.length ? list.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}</td><td>${esc(s.platform)}</td><td>${s.buyerName?esc(s.buyerName):s.buyerAccount?esc(s.buyerAccount):'<span class="muted">—</span>'}</td><td class="r num">${fmt(revenue(s))}${+s.refund?` <span class="pill warn">zwrot</span>`:""}</td><td>${PAY_LABEL[s.pay]||""}</td><td>${s.docNo?esc(s.docNo):'<span class="muted">—</span>'}</td><td>${isBiz(s)?'<span class="pill info">działalność</span>':'<span class="pill">prywatna</span>'}</td></tr>`).join("")
     : `<tr><td colspan="8" class="empty">${f?"Nic nie pasuje do wyszukiwania.":"Brak sprzedaży w "+state.year+" r. Dodaj pierwszą w formularzu powyżej."}</td></tr>`;
 }
 function renderCosts(){
@@ -1112,7 +1113,7 @@ async function readIntoForm(file){
 }
 
 // ---------- forms ----------
-const SALE_FIELDS=["date","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAddr","buyerNip","docType","docNo","notes"];
+const SALE_FIELDS=["date","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAccount","buyerAddr","buyerNip","docType","docNo","notes"];
 const NUMS=new Set(["price","ship","cost","refund","amount","eur"]);
 function resetSale(){ $("#saleForm").reset(); $("#s_id").value=""; $("#s_date").value=today(); $("#saleFormTitle").textContent="Nowa sprzedaż"; $("#saleDelete").hidden=true; $("#saleDoc").hidden=true; $("#saleDelete").dataset.armed=""; $("#saleDelete").textContent="Usuń"; }
 function editSale(id){
@@ -1226,7 +1227,7 @@ async function download(filename, data){
 const csvCell=v=>{ const s=String(v??""); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
 const csv=rows=>"﻿"+rows.map(r=>r.map(csvCell).join(";")).join("\r\n");
 const n2=v=>(Math.round((+v||0)*100)/100).toFixed(2).replace(".",",");
-$("#salesCsv").onclick=()=>download(`sprzedaz-${state.year}.csv`, csv([["Data","Przedmiot","Platforma","Cena","Wysyłka","Zwrot","Przychód","Płatność","Dostawa","Kupujący","Rodzaj","Koszt zakupu","Dokument","Numer","Nabywca","Uwagi"],...yearSales().map(s=>[s.date,s.item,s.platform,n2(s.price),n2(s.ship),n2(s.refund),n2(revenue(s)),PAY_LABEL[s.pay]||"",s.delivery,s.buyerType,isBiz(s)?"działalność":"prywatna",n2(s.cost),s.docType,s.docNo,s.buyerName,s.notes])]));
+$("#salesCsv").onclick=()=>download(`sprzedaz-${state.year}.csv`, csv([["Data","Przedmiot","Platforma","Cena","Wysyłka","Zwrot","Przychód","Płatność","Dostawa","Kupujący","Rodzaj","Koszt zakupu","Dokument","Numer","Nabywca","Konto kupującego","Uwagi"],...yearSales().map(s=>[s.date,s.item,s.platform,n2(s.price),n2(s.ship),n2(s.refund),n2(revenue(s)),PAY_LABEL[s.pay]||"",s.delivery,s.buyerType,isBiz(s)?"działalność":"prywatna",n2(s.cost),s.docType,s.docNo,s.buyerName,s.buyerAccount,s.notes])]));
 $("#costsCsv").onclick=()=>download(`koszty-${state.year}.csv`, csv([["Data","Opis","Kategoria","Kwota","Dowód"],...yearCosts().map(c=>[c.date,c.desc,CAT_LABEL[c.cat]||c.cat,n2(c.amount),c.ref])]));
 $("#ewCsv").onclick=()=>download(`ewidencja-sprzedazy-${state.year}.csv`, csv([["Lp.","Data","Przychód z dnia","Narastająco w roku","Narastająco w kwartale","Dokumenty"],...ewRows().map(r=>[r.lp,r.date,n2(r.rev),n2(r.cum),n2(r.qcum),r.docs.join(", ")])]));
 $("#backupDl").onclick=downloadBackup;
