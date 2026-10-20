@@ -426,12 +426,12 @@ button.b:disabled{opacity:.5;cursor:default}
 
   <!-- USTAWIENIA -->
   <section data-panel="ustawienia" hidden style="display:grid;gap:18px">
-    <div class="card">
-      <div class="row"><h2>Portale sprzedażowe</h2><span class="status" id="platStatus"></span></div>
+    <details class="card" id="platCard">
+      <summary style="cursor:pointer;list-style-position:inside"><h2 style="display:inline">Portale sprzedażowe <span class="muted" id="platCount"></span></h2> <span class="small muted">kliknij, żeby rozwinąć lub zwinąć</span> <span class="status" id="platStatus"></span></summary>
       <p class="small muted" style="margin:0;max-width:72ch">Te portale pojawiają się na liście przy dodawaniu sprzedaży. Zmiana nazwy poprawia ją też we wcześniejszych sprzedażach. Odznacz DAC7 przy kanałach, które nie raportują do KAS, np. własny sklep albo sprzedaż bezpośrednia.</p>
       <div class="tablewrap"><table><thead><tr><th>Nazwa</th><th>DAC7</th><th class="r">Sprzedaże</th><th></th></tr></thead><tbody id="platTable"></tbody></table></div>
       <form id="platAdd" class="btns" autocomplete="off"><input id="plat_new" placeholder="Nazwa nowego portalu" style="width:240px" required><label class="small" style="display:flex;flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="plat_newDac" checked> raportuje DAC7</label><button class="b primary sm" type="submit">Dodaj portal</button></form>
-    </div>
+    </details>
     <div class="card">
       <div class="row"><h2>Twoje dane na dokumentach</h2><span class="status" id="setStatus"></span></div>
       <form id="setForm" autocomplete="off">
@@ -1181,6 +1181,7 @@ $("#s_productId").addEventListener("change", e=>{
 });
 function renderPlatforms(){
   const cnt={}; for(const s of state.sales) cnt[s.platform]=(cnt[s.platform]||0)+1;
+  $("#platCount").textContent=`(${platList().length})`;
   $("#platTable").innerHTML=platList().map((p,i)=>`<tr data-i="${i}"><td><input value="${esc(p.name)}" data-pact="name" aria-label="Nazwa portalu" style="width:100%;min-width:160px"></td><td><input type="checkbox" data-pact="dac7" ${p.dac7!==false?"checked":""} aria-label="Raportuje DAC7"></td><td class="r num">${cnt[p.name]||0}</td><td class="r"><div class="btns" style="flex-wrap:nowrap;justify-content:flex-end"><button class="b sm" type="button" data-pact="up" ${i?"":"disabled"} aria-label="W górę">↑</button><button class="b sm danger" type="button" data-pact="del">Usuń</button></div></td></tr>`).join("");
 }
 $("#platTable").addEventListener("change", async e=>{

@@ -28,5 +28,10 @@
     "n": 6,
     "date": "2026-10-20",
     "text": "Powiadomienie o nowej wersji programu z przyciskiem przeładowania."
+  },
+  {
+    "n": 7,
+    "date": "2026-10-20",
+    "text": "Lista portali w Ustawieniach jest zwinięta i rozwija się po kliknięciu."
   }
 ]
