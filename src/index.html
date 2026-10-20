@@ -359,7 +359,8 @@ button.b:disabled{opacity:.5;cursor:default}
   <section data-panel="dokumenty" hidden style="display:grid;gap:18px">
     <div class="card">
       <div class="row"><h2>Wystaw rachunek lub fakturę</h2><span class="status" id="docStatus"></span></div>
-      <p class="small muted" style="margin:0;max-width:72ch">Dokument wystawiasz na żądanie kupującego zgłoszone w ciągu 3 miesięcy. Rachunek wystarcza w większości przypadków. Faktura bez VAT wymaga Twojego NIP i podstawy zwolnienia (art. 113 ust. 1 ustawy o VAT).</p>
+      <p class="small muted" style="margin:0;max-width:72ch">Dokument wystawiasz na żądanie kupującego. Gdy kupujący prosi o fakturę, musisz wystawić fakturę bez VAT (art. 106b ust. 3 ustawy o VAT), także bez własnego NIP. Rachunek wystarczy osobie prywatnej, która chce potwierdzenia zakupu. Podpis nie jest wymagany na żadnym z tych dokumentów.</p>
+      <div class="alerts" id="docAlerts"></div>
       <div class="fields">
         <label>Sprzedaż<select id="d_sale"></select></label>
         <label>Rodzaj<select id="d_type"><option value="rachunek">Rachunek</option><option value="faktura">Faktura (bez VAT)</option></select></label>
@@ -457,7 +458,7 @@ button.b:disabled{opacity:.5;cursor:default}
         <dt>Ewidencja</dt>
         <dd>Uproszczona ewidencja sprzedaży: data, przychód z danego dnia i przychód narastająco. Forma dowolna (papier albo elektronicznie). Wpis na koniec dnia sprzedaży.</dd>
         <dt>Rachunki i faktury</dt>
-        <dd>Wystawiasz na żądanie kupującego zgłoszone w ciągu 3 miesięcy. Jako podatnik zwolniony z VAT możesz wystawić rachunek; faktura bez VAT musi zawierać podstawę zwolnienia. Faktury dla firm od 2026–2027 r. obejmuje KSeF, więc przy fakturze dla firmy sprawdź aktualny obowiązek. Rachunków KSeF nie dotyczy.</dd>
+        <dd>Wystawiasz na żądanie kupującego, bez podpisu. Gdy kupujący żąda faktury, wystawiasz fakturę bez VAT z podstawą zwolnienia (art. 106b ust. 3 i art. 113 ust. 1 ustawy o VAT); w innych przypadkach wystarczy rachunek. Rachunek: żądanie do 3 miesięcy od wydania towaru, wystawienie w ciągu 7 dni, kwota cyfrowo i słownie. Faktura: żądanie do 3 miesięcy od końca miesiąca sprzedaży, wystawienie do 15. dnia następnego miesiąca albo w ciągu 15 dni od późniejszego żądania; od 1.02.2026 z NIP nabywcy, jeśli go ma. KSeF: faktury dla osób prywatnych nigdy nie muszą do niego trafiać, a rachunków nie dotyczy. Faktury dla firm do 31.12.2026 możesz wystawiać poza KSeF, dopóki sprzedaż na fakturach nie przekroczy 10 000 zł brutto w miesiącu. Od 1.01.2027 faktury dla firm idą przez KSeF, do czego potrzebujesz własnego NIP (zgłoszenie NIP-7).</dd>
         <dt>Kasa fiskalna</dt>
         <dd>Zwolnienie do 20 000 zł rocznej sprzedaży na rzecz osób prywatnych. Sprzedaż wysyłkowa, w której cała zapłata przychodzi przelewem, przez pocztę lub bank, a z dokumentów widać, czego dotyczyła, jest zwolniona niezależnie od kwoty. Gotówka przy odbiorze osobistym liczy się do limitu.</dd>
         <dt>VAT</dt>
@@ -783,24 +784,55 @@ function docHTML(d){
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:6px;background:#eef1f4">Lp.</th><th style="text-align:left;padding:6px;background:#eef1f4">Nazwa towaru lub usługi</th><th style="text-align:right;padding:6px;background:#eef1f4">Ilość</th><th style="text-align:right;padding:6px;background:#eef1f4">Cena</th><th style="text-align:right;padding:6px;background:#eef1f4">Wartość</th></tr></thead>
   <tbody>${lines.map((l,i)=>`<tr><td style="padding:6px;border-bottom:1px solid #ccc">${i+1}</td><td style="padding:6px;border-bottom:1px solid #ccc;white-space:normal">${esc(l.n)}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${l.q} szt.</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${fmt(l.v)}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${fmt(l.v*l.q)}</td></tr>`).join("")}</tbody></table>
-  <div style="text-align:right;font-size:16px;margin:14px 0">Do zapłaty: <b>${fmt(total)}</b></div>
+  <div style="text-align:right;font-size:16px;margin:14px 0 2px">Do zapłaty: <b>${fmt(total)}</b></div>
+  <div style="text-align:right;margin-bottom:14px">Słownie: ${esc(plnWords(total))}</div>
   <div>Sposób zapłaty: ${esc(d.pay)}${st.account&&!/gotówka/.test(d.pay)?"<br>Numer konta: "+esc(st.account):""}</div>
   ${isF?'<div style="margin-top:10px">Podstawa zwolnienia z VAT: art. 113 ust. 1 ustawy z dnia 11 marca 2004 r. o podatku od towarów i usług.</div>':'<div style="margin-top:10px;color:#444">Sprzedaż w ramach działalności nierejestrowanej (art. 5 ust. 1 ustawy Prawo przedsiębiorców). Sprzedawca zwolniony z VAT na podstawie art. 113 ust. 1 ustawy o VAT.</div>'}
-  <div style="display:flex;justify-content:space-between;margin-top:60px;color:#555;font-size:12px"><div style="border-top:1px solid #999;padding-top:4px;width:200px;text-align:center">podpis wystawcy</div><div style="border-top:1px solid #999;padding-top:4px;width:200px;text-align:center">podpis odbiorcy</div></div>
 </div>`;
 }
 function docText(d){
   const st=state.settings, s=d.s, isF=d.type==="faktura";
-  return `${isF?"FAKTURA (bez VAT)":"RACHUNEK"} nr ${d.no}\nData wystawienia: ${plDate(d.date)}  Data sprzedaży: ${plDate(s.date)}\n\nSprzedawca: ${st.name}, ${st.addr}${isF&&st.nip?", NIP "+st.nip:""}\nNabywca: ${s.buyerName||"—"}${s.buyerAddr?", "+s.buyerAddr:""}${s.buyerNip?", NIP "+s.buyerNip:""}\n\n1. ${s.item} — ${fmt(s.price)}${+s.ship?"\n2. Koszt wysyłki — "+fmt(s.ship):""}${+s.refund?"\nZwrot — -"+fmt(s.refund):""}\n\nDo zapłaty: ${fmt(revenue(s))}\nSposób zapłaty: ${d.pay}\nPodstawa zwolnienia z VAT: art. 113 ust. 1 ustawy o VAT.`;
+  return `${isF?"FAKTURA (bez VAT)":"RACHUNEK"} nr ${d.no}\nData wystawienia: ${plDate(d.date)}  Data sprzedaży: ${plDate(s.date)}\n\nSprzedawca: ${st.name}, ${st.addr}${isF&&st.nip?", NIP "+st.nip:""}\nNabywca: ${s.buyerName||"—"}${s.buyerAddr?", "+s.buyerAddr:""}${s.buyerNip?", NIP "+s.buyerNip:""}\n\n1. ${s.item} — ${fmt(s.price)}${+s.ship?"\n2. Koszt wysyłki — "+fmt(s.ship):""}${+s.refund?"\nZwrot — -"+fmt(s.refund):""}\n\nDo zapłaty: ${fmt(revenue(s))}\nSłownie: ${plnWords(revenue(s))}\nSposób zapłaty: ${d.pay}\nPodstawa zwolnienia z VAT: art. 113 ust. 1 ustawy o VAT.`;
+}
+const W1=["","jeden","dwa","trzy","cztery","pięć","sześć","siedem","osiem","dziewięć","dziesięć","jedenaście","dwanaście","trzynaście","czternaście","piętnaście","szesnaście","siedemnaście","osiemnaście","dziewiętnaście"];
+const W10=["","","dwadzieścia","trzydzieści","czterdzieści","pięćdziesiąt","sześćdziesiąt","siedemdziesiąt","osiemdziesiąt","dziewięćdziesiąt"];
+const W100=["","sto","dwieście","trzysta","czterysta","pięćset","sześćset","siedemset","osiemset","dziewięćset"];
+const plForm=(n,[one,few,many])=> n===1?one : (n%10>=2&&n%10<=4&&(n%100<12||n%100>14))?few:many;
+function words999(n){ const h=Math.floor(n/100), r=n%100; return [W100[h], r<20?W1[r]:W10[Math.floor(r/10)]+(r%10?" "+W1[r%10]:"")].filter(Boolean).join(" "); }
+function intWords(n){
+  if(n===0) return "zero";
+  const groups=[["","",""],["tysiąc","tysiące","tysięcy"],["milion","miliony","milionów"]]; const out=[];
+  for(let i=0;n>0;i++,n=Math.floor(n/1000)){ const g=n%1000; if(!g) continue; out.unshift(i&&g===1?groups[i][0]:(words999(g)+(i?" "+plForm(g,groups[i]):""))); }
+  return out.join(" ");
+}
+function plnWords(v){
+  const neg=v<0, c=Math.round(Math.abs(v)*100), zl=Math.floor(c/100), gr=c%100;
+  return (neg?"minus ":"")+intWords(zl)+" "+plForm(zl,["złoty","złote","złotych"])+" "+intWords(gr)+" "+plForm(gr,["grosz","grosze","groszy"]);
+}
+function addMonths(iso,n){ const [y,m,d]=iso.split("-").map(Number); const t=new Date(y,m-1+n,1), last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(Math.min(d,last)).padStart(2,"0")}`; }
+function monthEnd(iso){ const [y,m]=iso.split("-").map(Number); const t=new Date(y,m,0); return `${y}-${String(m).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`; }
+function renderDocAlerts(d){
+  const box=$("#docAlerts"); if(!box) return; if(!d){ box.innerHTML=""; return; }
+  const s=d.s, al=[];
+  if(d.type==="faktura"){
+    const reqBy=addMonths(monthEnd(s.date),3), issueBy=addMonths(s.date.slice(0,8)+"15",1);
+    al.push(["",`Termin faktury`,`Kupujący może zażądać faktury do ${plDate(reqBy)}. Wystaw ją do ${plDate(issueBy)}, a przy późniejszym żądaniu w ciągu 15 dni od niego.`]);
+    if(s.buyerType==="firma" && !String(s.buyerNip||"").trim()) al.push(["warn","Brak NIP nabywcy","Od 1.02.2026 na fakturze dla firmy trzeba podać NIP nabywcy, jeśli go ma. Uzupełnij go w danych kupującego przy tej sprzedaży (zakładka Sprzedaż)."]);
+    if(s.buyerType==="firma" && yearOf(d.date)>=2027) al.push(["warn","Faktura dla firmy w KSeF","Od 1.01.2027 fakturę dla firmy wystawiasz w KSeF, do czego potrzebujesz własnego NIP (zgłoszenie NIP-7)."]);
+  } else {
+    al.push(["",`Termin rachunku`,`Kupujący może zażądać rachunku do ${plDate(addMonths(s.date,3))} (3 miesiące od wydania towaru). Wystaw go w ciągu 7 dni od żądania.`]);
+    if(s.buyerType==="firma") al.push(["warn","Kupujący to firma","Jeśli firma prosi o fakturę, musisz wystawić fakturę bez VAT, a nie rachunek."]);
+  }
+  box.innerHTML=al.map(([k,t,x])=>`<div class="alert ${k}"><strong>${esc(t)}</strong>${esc(x)}</div>`).join("");
 }
 function renderDocPreview(){
-  const d=docData();
+  const d=docData(); renderDocAlerts(d);
   $("#docPreview").innerHTML = d ? docHTML(d) : '<div class="empty" style="color:#555">Wybierz sprzedaż, a tu pojawi się podgląd dokumentu.</div>';
 }
 function loadDocFor(id){
   const s=state.sales.find(x=>x.id===id); if(!s) return;
   $("#d_sale").value=id;
-  $("#d_type").value = s.docType || (s.buyerType==="firma"&&state.settings.nip?"faktura":"rachunek");
+  $("#d_type").value = s.docType || (s.buyerType==="firma"?"faktura":"rachunek");
   $("#d_no").value = s.docNo || nextDocNo($("#d_type").value, yearOf(s.date));
   $("#d_date").value = today();
   $("#d_payText").value = payText(s);
