@@ -200,11 +200,11 @@ print("OK", len(doc), "bytes")
 import hashlib
 import json
 
-version = hashlib.sha1(doc.encode("utf-8") + pathlib.Path(__file__).read_bytes() + (HERE / "changelog.json").read_bytes()).hexdigest()[:10]
+version = hashlib.sha1(doc.encode("utf-8") + pathlib.Path(__file__).read_bytes() + (HERE / "changelog.json").read_bytes() + b"".join(f.read_bytes() for f in sorted((HERE / "icons").glob("*.png")))).hexdigest()[:10]
 pwa = HERE / "pwa"
 pwa.mkdir(exist_ok=True)
 pwa_head = ('<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="favicon.svg" type="image/svg+xml">\n'
-            '<link rel="apple-touch-icon" href="icon.svg">\n<meta name="theme-color" content="#1d5b86">\n</head>')
+            '<link rel="apple-touch-icon" href="icons/paragon-apple-180.png">\n<meta name="theme-color" content="#1d5b86">\n</head>')
 changes = json.loads((HERE / "changelog.json").read_text(encoding="utf-8"))
 pwa_boot = """<script>
 (() => {
@@ -266,17 +266,21 @@ pwa_doc = pwa_doc[:cut] + pwa_boot + pwa_doc[cut + len("</body>"):]
     "description": "Ewidencja sprzedaży dla działalności nierejestrowanej",
     "start_url": "./", "scope": "./", "display": "standalone",
     "background_color": "#f3f5f7", "theme_color": "#1d5b86",
-    "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
-              {"src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"}],
+    "icons": [{"src": "icons/paragon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+              {"src": "icons/paragon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+              {"src": "icons/paragon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+              {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}],
 }, ensure_ascii=False, indent=2), encoding="utf-8")
 # Logo "Paragon": receipt with a zigzag bottom edge. icon.svg has rounded corners; the maskable one is full-bleed with the receipt inside the safe zone.
 PAPER = '<path d="M10 6h12v20l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z" fill="#fff"/><path d="M13 11h6M13 15h6M13 19h3.5" stroke="#1d5b86" stroke-width="1.8" stroke-linecap="round" fill="none"/>'
 (pwa / "icon.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#1d5b86"/>' + PAPER + '</svg>\n', encoding="utf-8")
 (pwa / "icon-maskable.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="#1d5b86"/><g transform="translate(16 16) scale(.78) translate(-16 -16)">' + PAPER + '</g></svg>\n', encoding="utf-8")
+import shutil
+shutil.copytree(HERE / "icons", pwa / "icons", dirs_exist_ok=True)
 (pwa / "favicon.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#1d5b86"/><path d="M10 6h12v20l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z" fill="#fff"/></svg>\n', encoding="utf-8")
 (pwa / "sw.js").write_text("""// Network first for the app itself (so every online start gets the newest version), cache as the offline fallback.
 const CACHE = "ewidencja-%s";
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-maskable.svg", "favicon.svg"];
+const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-maskable.svg", "favicon.svg", "icons/paragon-192.png", "icons/paragon-512.png", "icons/paragon-maskable-512.png", "icons/paragon-apple-180.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {
