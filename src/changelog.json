@@ -53,5 +53,10 @@
     "n": 11,
     "date": "2026-10-20",
     "text": "Kolumna „Wysłane” w tabeli sprzedaży: zaznaczenie zapisuje datę wysyłki."
+  },
+  {
+    "n": 12,
+    "date": "2026-10-20",
+    "text": "Data wysyłki jest pod ptaszkiem i można ją zmienić po kliknięciu."
   }
 ]
