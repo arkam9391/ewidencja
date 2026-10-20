@@ -70,6 +70,9 @@ h1 small{font-family:var(--f-body);font-weight:500;font-size:.8rem;color:var(--m
 .evitem .t{min-width:0;overflow-wrap:anywhere}
 .evitem.click{cursor:pointer}
 .evitem.click:hover{background:var(--accent-soft)}
+.attbox{display:grid;gap:8px;padding:12px;border:1px dashed var(--line);border-radius:8px;background:var(--surface-2)}
+.attbox input[type=file]{background:var(--surface)}
+.attlink{color:var(--accent);font-weight:600;cursor:pointer;background:none;border:0;padding:0;font:inherit;text-decoration:underline}
 .themepick select{width:auto;padding:5px 8px;font-size:.85rem}
 nav{flex-basis:100%;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
 nav button{all:unset;cursor:pointer;padding:10px 12px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
@@ -325,6 +328,11 @@ button.b:disabled{opacity:.5;cursor:default}
           <label>Kwota (zł)<input type="number" step="0.01" min="0" id="c_amount" required inputmode="decimal"></label>
           <label>Dowód (nr dokumentu)<input id="c_ref"></label>
         </div>
+        <div class="attbox">
+          <label>Dokument zakupu (zdjęcie lub PDF)<input type="file" id="c_file" accept="image/*,application/pdf"></label>
+          <div class="small" id="c_attInfo"></div>
+          <div class="btns"><button class="b sm" type="button" id="c_read" hidden>Odczytaj dane ponownie</button><span class="status" id="c_readStatus"></span></div>
+        </div>
         <div class="btns">
           <button class="b primary" type="submit">Zapisz koszt</button>
           <button class="b" type="button" id="costReset">Wyczyść</button>
@@ -334,7 +342,7 @@ button.b:disabled{opacity:.5;cursor:default}
     </div>
     <div class="card">
       <div class="row"><h2>Koszty w roku <span id="costsYear"></span></h2><button class="b sm" id="costsCsv">Pobierz CSV</button></div>
-      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Opis</th><th>Kategoria</th><th class="r">Kwota</th><th>Dowód</th></tr></thead><tbody id="costsTable"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Opis</th><th>Kategoria</th><th class="r">Kwota</th><th>Dowód</th><th>Dokument</th></tr></thead><tbody id="costsTable"></tbody></table></div>
     </div>
   </section>
 
@@ -589,7 +597,8 @@ function reminderHTML(){
   return `<div class="alert warn"><strong>Przenieś kopię danych na nośnik zewnętrzny</strong>${when} Pobierz plik kopii, skopiuj go na pendrive, dysk zewnętrzny albo do chmury i potwierdź.<div class="btns" style="margin-top:8px"><button class="b sm" data-bk="download">Pobierz kopię</button><button class="b sm" data-bk="confirm">Kopia jest na nośniku</button></div></div>`;
 }
 async function downloadBackup(){
-  const ok = await download(`ewidencja-kopia-${today()}.json`, JSON.stringify(payload(),null,2));
+  const p=payload(); if(!db){ try{ p.attachments=await attachmentsForBackup(); }catch(e){} }
+  const ok = await download(`ewidencja-kopia-${today()}.json`, JSON.stringify(p,null,2));
   if(ok){ await setBState({lastDownloadAt:Date.now()}); toast("Przenieś pobrany plik na nośnik zewnętrzny i potwierdź"); }
 }
 async function confirmExternal(){ await setBState({lastExternalAt:Date.now()}); toast("Zapisano potwierdzenie"); }
@@ -705,8 +714,8 @@ function renderSales(){
 function renderCosts(){
   $("#costsYear").textContent=state.year;
   const list=yearCosts().slice().reverse();
-  $("#costsTable").innerHTML = list.length ? list.map(c=>`<tr class="click" data-id="${esc(c.id)}" tabindex="0"><td class="num">${plDate(c.date)}</td><td class="wrap-txt">${esc(c.desc)}</td><td>${CAT_LABEL[c.cat]||""}</td><td class="r num">${fmt(c.amount)}</td><td>${esc(c.ref)}</td></tr>`).join("")
-    : `<tr><td colspan="5" class="empty">Brak kosztów w ${state.year} r. Koszt zakupu towaru możesz też wpisać bezpośrednio przy sprzedaży.</td></tr>`;
+  $("#costsTable").innerHTML = list.length ? list.map(c=>`<tr class="click" data-id="${esc(c.id)}" tabindex="0"><td class="num">${plDate(c.date)}</td><td class="wrap-txt">${esc(c.desc)}</td><td>${CAT_LABEL[c.cat]||""}</td><td class="r num">${fmt(c.amount)}</td><td>${esc(c.ref)}</td><td>${c.att?`<button type="button" class="attlink" data-att="${esc(c.id)}">${esc(c.att.type==="application/pdf"?"PDF":"Zdjęcie")}</button>`:'<span class="muted">—</span>'}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">Brak kosztów w ${state.year} r. Koszt zakupu towaru możesz też wpisać bezpośrednio przy sprzedaży.</td></tr>`;
 }
 function ewRows(){
   const by=new Map();
@@ -938,6 +947,133 @@ function applyPalette(v){ if(v) document.documentElement.dataset.palette=v; else
 try{ const pv=localStorage.getItem("ewidencja-palette")||""; $("#palette").value=pv; applyPalette(pv); }catch(e){}
 $("#palette").addEventListener("change",e=>{ applyPalette(e.target.value); try{ localStorage.setItem("ewidencja-palette",e.target.value); }catch(err){} });
 
+// ---------- purchase documents: storage ----------
+const ATT_MAX=15*1024*1024;
+let pendingFile=null, removeAtt=false, assetsNS;
+const isPdf = f => (f.type||"").includes("pdf") || /\.pdf$/i.test(f.name||"");
+function renderAttInfo(c){
+  const box=$("#c_attInfo");
+  if(pendingFile) box.innerHTML=`Wybrany plik: <b>${esc(pendingFile.name)}</b> (${fmtSize(pendingFile.size)}). Zapisze się razem z kosztem. <button type="button" class="attlink" data-attact="open">Podgląd</button> · <button type="button" class="attlink" data-attact="drop">Usuń</button>`;
+  else if(c?.att && !removeAtt) box.innerHTML=`Dołączony dokument: <b>${esc(c.att.name)}</b> (${fmtSize(c.att.size||0)}). <button type="button" class="attlink" data-attact="open">Otwórz</button> · <button type="button" class="attlink" data-attact="drop">Odłącz</button>`;
+  else box.innerHTML = removeAtt ? "Dokument zostanie odłączony po zapisaniu." : "Dodaj zdjęcie paragonu lub fakturę w PDF. Dane odczytają się same.";
+}
+function openBlob(blob){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),60000); }
+async function attUpload(file){
+  if(db){
+    if(assetsNS===undefined){ try{ assetsNS=await window.claude.use("assets"); }catch(e){ assetsNS=null; } }
+    if(!assetsNS) throw new Error("att");
+    try{ const r=await assetsNS.upload(file); return {id:r.id, name:file.name, type:r.contentType, size:r.sizeBytes, store:"asset"}; }catch(e){ throw new Error("att"); }
+  }
+  const id="a"+uid();
+  try{ await attPutLocal(id, file); }catch(e){ throw new Error("att"); }
+  return {id, name:file.name, type:file.type||"application/octet-stream", size:file.size, store:"local"};
+}
+async function attOpen(att){
+  if(att.store==="asset"){ const a=document.createElement("a"); a.href="/_blob/"+att.id; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); return; }
+  const b=await attGetLocal(att.id).catch(()=>null); if(b) openBlob(b); else toast("Nie znaleziono pliku dokumentu na tym urządzeniu");
+}
+function attRemove(att){
+  if(att.store==="asset"){ (async()=>{ try{ if(assetsNS===undefined) assetsNS=await window.claude.use("assets"); await assetsNS?.delete(att.id); }catch(e){} })(); }
+  else attDelLocal(att.id).catch(()=>{});
+}
+const blobToB64 = b => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=()=>rej(r.error); r.readAsDataURL(b); });
+const b64ToBlob = (b64,type) => { const bin=atob(b64), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new Blob([u],{type}); };
+async function attachmentsForBackup(){
+  const out={};
+  for(const c of state.costs){ if(c.att?.store==="local"){ const b=await attGetLocal(c.att.id).catch(()=>null); if(b) out[c.att.id]={name:c.att.name,type:c.att.type,data:await blobToB64(b)}; } }
+  return out;
+}
+async function importAttachments(d){
+  if(!d.attachments) return;
+  for(const c of d.costs||[]){
+    const a=c.att && d.attachments[c.att.id]; if(!a) continue;
+    const file=new File([b64ToBlob(a.data,a.type)], a.name, {type:a.type});
+    try{
+      if(db){ const meta=await attUpload(file); await putDoc("costs",{...c, att:meta}); }
+      else await attPutLocal(c.att.id, file);
+    }catch(e){}
+  }
+}
+// <att-local>
+function attDB(){ return attDB.p || (attDB.p=new Promise((res,rej)=>{ const r=indexedDB.open("ewidencja-att",1); r.onupgradeneeded=()=>r.result.createObjectStore("files"); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); })); }
+function attTx(mode, fn){ return attDB().then(d=>new Promise((res,rej)=>{ const t=d.transaction("files",mode); const q=fn(t.objectStore("files")); t.oncomplete=()=>res(q&&q.result); t.onerror=()=>rej(t.error); })); }
+async function attPutLocal(id, file){ const buf=new Uint8Array(await file.arrayBuffer()); await attTx("readwrite", s=>s.put({name:file.name, type:file.type, size:file.size, buf}, id)); }
+async function attGetLocal(id){ const r=await attTx("readonly", s=>s.get(id)); return r ? new Blob([r.buf],{type:r.type}) : null; }
+async function attDelLocal(id){ await attTx("readwrite", s=>s.delete(id)); }
+// </att-local>
+
+// ---------- purchase documents: reading data ----------
+const LIBS={pdf:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", pdfWorker:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js", ocr:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"};
+function loadScript(src){ loadScript.c=loadScript.c||{}; return loadScript.c[src] || (loadScript.c[src]=new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>{ delete loadScript.c[src]; rej(new Error("load")); }; document.head.appendChild(s); })); }
+async function pdfDoc(file){ await loadScript(LIBS.pdf); await loadScript(LIBS.pdfWorker); window.pdfjsLib.GlobalWorkerOptions.workerSrc=LIBS.pdfWorker; return window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise; }
+async function pdfText(doc){ let t=""; for(let i=1;i<=Math.min(doc.numPages,3);i++){ const pg=await doc.getPage(i), c=await pg.getTextContent(); let lastY=null; for(const it of c.items){ const y=it.transform[5]; t+=(lastY!==null&&Math.abs(y-lastY)>3?"\n":" ")+it.str; lastY=y; } t+="\n"; } return t; }
+async function pdfToImage(doc){ const pg=await doc.getPage(1), vp0=pg.getViewport({scale:1}), scale=Math.min(2.5, 1800/Math.max(vp0.width,vp0.height)), vp=pg.getViewport({scale}); const cv=document.createElement("canvas"); cv.width=vp.width; cv.height=vp.height; await pg.render({canvasContext:cv.getContext("2d"), viewport:vp}).promise; return new Promise(r=>cv.toBlob(r,"image/jpeg",0.88)); }
+async function shrinkImage(file){ const bmp=await createImageBitmap(file); const k=Math.min(1, 1800/Math.max(bmp.width,bmp.height)); const cv=document.createElement("canvas"); cv.width=Math.round(bmp.width*k); cv.height=Math.round(bmp.height*k); cv.getContext("2d").drawImage(bmp,0,0,cv.width,cv.height); return new Promise(r=>cv.toBlob(r,"image/jpeg",0.88)); }
+const READ_PROMPT=`Na obrazie jest dokument zakupu z Polski (paragon, faktura, rachunek, potwierdzenie zamówienia lub płatności). Odczytaj dane i odpowiedz wyłącznie obiektem JSON:
+{"data":"RRRR-MM-DD albo null","sprzedawca":"nazwa sprzedawcy albo null","nip":"NIP sprzedawcy albo null","numer":"numer dokumentu albo null","kwota":liczba brutto do zapłaty w zł albo null,"opis":"krótki opis zakupu, najwyżej 60 znaków","kategoria":"towar|wysylka|prowizja|opakowania|reklama|inne"}
+Kategorie: towar = rzeczy kupione do odsprzedaży; wysylka = kurier, paczkomat, nadanie przesyłki; prowizja = opłaty i prowizje platform sprzedażowych; opakowania = kartony, folie, taśmy, koperty; reklama = wyróżnienia i promowanie ogłoszeń; inne = pozostałe. Kwotę podaj jako liczbę z kropką dziesiętną. Jeśli czegoś nie widać, wpisz null.`;
+async function readWithClaude(file, doc){
+  let sample=null; try{ sample = window.claude?.use ? await window.claude.use("sample") : null; }catch(e){}
+  if(!sample) return null;
+  const lim=await sample.limits().catch(()=>null); if(!lim?.images) return null;
+  const img = doc ? await pdfToImage(doc) : await shrinkImage(file);
+  const r = await sample.json(READ_PROMPT, {images:[img], modelTier:"default"});
+  return {date:r.data, seller:r.sprzedawca, nip:r.nip, number:r.numer, amount:r.kwota, desc:r.opis, cat:r.kategoria, via:"Claude"};
+}
+async function ocrText(img, onProgress){
+  await loadScript(LIBS.ocr);
+  const w=await window.Tesseract.createWorker("pol", 1, {logger:m=>{ if(m.status==="recognizing text") onProgress(Math.round(m.progress*100)); }});
+  try{ const {data}=await w.recognize(img); return data.text||""; } finally { w.terminate(); }
+}
+function parseAmount(str){ const m=String(str).replace(/\s(?=\d{3}\b)/g,"").match(/-?\d+[.,]\d{2}(?!\d)/g); return m ? m.map(x=>+x.replace(",",".")) : []; }
+function parseDocText(text){
+  const lines=text.split(/\n+/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean), low=text.toLowerCase(), out={via:"odczyt tekstu"};
+  const dm = l => { let m=l.match(/(20\d{2})[-./](\d{1,2})[-./](\d{1,2})/); if(m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`; m=l.match(/\b(\d{1,2})[-./](\d{1,2})[-./](20\d{2})\b/); if(m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`; return null; };
+  const dl = lines.find(l=>/data (wystawienia|sprzeda|zakupu|zam)/i.test(l)&&dm(l)) || lines.find(l=>dm(l)); if(dl) out.date=dm(dl);
+  const keys=[/do zap[łl]aty/i,/suma\s*pln/i,/zap[łl]acono/i,/razem/i,/suma/i,/warto[śs][ćc] brutto/i,/og[óo][łl]em/i,/total/i,/kwota/i];
+  for(const k of keys){ const l=lines.filter(x=>k.test(x)).map(parseAmount).find(a=>a.length); if(l){ out.amount=l[l.length-1]; break; } }
+  if(out.amount==null){ const all=lines.flatMap(parseAmount).filter(x=>x>0); if(all.length) out.amount=Math.max(...all); }
+  const nip=text.match(/NIP[^\d]{0,6}((?:\d[\s-]?){10})/i); if(nip) out.nip=nip[1].replace(/\D/g,"");
+  const nr=text.match(/(?:faktura(?: vat)?|rachunek|paragon(?: fiskalny)?|zam[óo]wienie)\s*(?:nr|numer)?\.?\s*:?\s*([A-Z0-9][A-Z0-9\/\-.]{2,})/i) || text.match(/\b(?:nr|numer)\.?\s*:?\s*([A-Z0-9][A-Z0-9\/\-.]{2,})/i);
+  if(nr && /\d/.test(nr[1])) out.number=nr[1];
+  const seller=lines.find(l=>/[a-ząćęłńóśźż]{3}/i.test(l) && !/(faktura|paragon|rachunek|nip|data|nabywca|sprzedawca:?$|kopia|orygina[łl]|strona)/i.test(l) && l.length>3 && l.length<70);
+  if(seller) out.seller=seller;
+  out.cat = /inpost|paczkomat|dpd|dhl|gls|ups|fedex|poczta polska|orlen paczka|kurier|przesy[łl]k/.test(low)?"wysylka"
+    : /prowizj|op[łl]ata za (sprzeda|wystawien)|allegro sp|vinted|olx/.test(low)?"prowizja"
+    : /karton|folia|ta[śs]m|kopert|opakow|pud[łe]/.test(low)?"opakowania"
+    : /wyr[óo][żz]ni|promowan|reklam|podbici/.test(low)?"reklama" : "towar";
+  return out;
+}
+async function readDocument(file, onStatus){
+  let doc=null;
+  if(isPdf(file)){ onStatus("Otwieram PDF…"); doc=await pdfDoc(file); }
+  try{ onStatus("Claude czyta dokument…"); const r=await readWithClaude(file, doc); if(r) return r; }catch(e){ if(e?.code==="not_granted") onStatus("Bez zgody na Claude, odczytuję tekst…"); }
+  let text="";
+  if(doc){ text=await pdfText(doc); }
+  if(text.replace(/\s/g,"").length<40){ onStatus("Rozpoznaję tekst ze zdjęcia…"); text=await ocrText(doc ? await pdfToImage(doc) : file, p=>onStatus(`Rozpoznaję tekst ze zdjęcia… ${p}%`)); }
+  return parseDocText(text);
+}
+let readSeq=0;
+async function readIntoForm(file){
+  const seq=++readSeq, st=$("#c_readStatus"); $("#c_read").hidden=true;
+  try{
+    const r=await readDocument(file, m=>{ if(seq===readSeq) st.textContent=m; });
+    if(seq!==readSeq) return;
+    const filled=[];
+    const set=(id,v,label)=>{ if(v==null||v==="") return; $(id).value=v; filled.push(label); };
+    if(r.date && /^\d{4}-\d{2}-\d{2}$/.test(r.date)) set("#c_date", r.date, "data");
+    if(typeof r.amount==="number" && r.amount>0) set("#c_amount", r.amount.toFixed(2), "kwota");
+    if(r.number) set("#c_ref", r.number, "numer");
+    const desc = r.desc || (r.seller ? "Zakup: "+r.seller : "");
+    if(desc && !$("#c_desc").value.trim()) set("#c_desc", desc.slice(0,80), "opis");
+    if(r.cat && CAT_LABEL[r.cat]) set("#c_cat", r.cat, "kategoria");
+    st.textContent = filled.length ? `Odczytano (${r.via}): ${filled.join(", ")}. Sprawdź dane przed zapisaniem.` : "Nie udało się odczytać danych. Wpisz je ręcznie.";
+  }catch(e){
+    if(seq===readSeq) st.textContent = e?.message==="load" ? "Odczytywanie wymaga internetu. Wpisz dane ręcznie albo spróbuj, gdy będziesz online." : "Nie udało się odczytać danych. Wpisz je ręcznie.";
+  }
+  if(seq===readSeq) $("#c_read").hidden=false;
+}
+
 // ---------- forms ----------
 const SALE_FIELDS=["date","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAddr","buyerNip","docType","docNo","notes"];
 const NUMS=new Set(["price","ship","cost","refund","amount","eur"]);
@@ -969,15 +1105,34 @@ rowClick($("#salesTable"), editSale);
 $("#salesFilter").addEventListener("input", renderSales);
 
 const COST_FIELDS=["date","desc","cat","amount","ref"];
-function resetCost(){ $("#costForm").reset(); $("#c_id").value=""; $("#c_date").value=today(); $("#costFormTitle").textContent="Nowy koszt"; $("#costDelete").hidden=true; $("#costDelete").dataset.armed=""; $("#costDelete").textContent="Usuń"; }
-rowClick($("#costsTable"), id=>{ const c=state.costs.find(x=>x.id===id); if(!c) return; $("#c_id").value=c.id; for(const f of COST_FIELDS) $("#c_"+f).value=c[f]??""; $("#costFormTitle").textContent="Edycja kosztu"; $("#costDelete").hidden=false; $("#costForm").scrollIntoView({behavior:"smooth",block:"start"}); });
+function resetCost(){ $("#costForm").reset(); $("#c_id").value=""; pendingFile=null; removeAtt=false; renderAttInfo(null); $("#c_readStatus").textContent=""; $("#c_read").hidden=true; $("#c_date").value=today(); $("#costFormTitle").textContent="Nowy koszt"; $("#costDelete").hidden=true; $("#costDelete").dataset.armed=""; $("#costDelete").textContent="Usuń"; }
+rowClick($("#costsTable"), id=>{ const c=state.costs.find(x=>x.id===id); if(!c) return; $("#c_id").value=c.id; for(const f of COST_FIELDS) $("#c_"+f).value=c[f]??""; pendingFile=null; removeAtt=false; $("#c_file").value=""; renderAttInfo(c); $("#costFormTitle").textContent="Edycja kosztu"; $("#costDelete").hidden=false; $("#costForm").scrollIntoView({behavior:"smooth",block:"start"}); });
 $("#costForm").addEventListener("submit", async e=>{
   e.preventDefault();
-  const o={id:$("#c_id").value||uid()}; for(const f of COST_FIELDS){ const v=$("#c_"+f).value; o[f]=NUMS.has(f)?(+v||0):v.trim(); }
-  try{ await putDoc("costs",o); toast("Zapisano koszt"); resetCost(); }catch(err){ $("#costStatus").textContent="Nie zapisano, spróbuj ponownie"; }
+  const id=$("#c_id").value||uid(), old=state.costs.find(x=>x.id===id);
+  const o={id}; for(const f of COST_FIELDS){ const v=$("#c_"+f).value; o[f]=NUMS.has(f)?(+v||0):v.trim(); }
+  o.att = old?.att || null;
+  $("#costStatus").textContent = pendingFile ? "Zapisuję dokument…" : "";
+  try{
+    if(pendingFile){ const meta=await attUpload(pendingFile); if(o.att) attRemove(o.att); o.att=meta; }
+    else if(removeAtt && o.att){ attRemove(o.att); o.att=null; }
+    if(!o.att) delete o.att;
+    await putDoc("costs",o); $("#costStatus").textContent=""; toast("Zapisano koszt"); resetCost();
+  }catch(err){ $("#costStatus").textContent=err?.message==="att"?"Nie udało się zapisać dokumentu. Sprawdź rozmiar pliku (do 15 MB).":"Nie zapisano, spróbuj ponownie"; }
 });
 $("#costReset").onclick=resetCost;
-$("#costDelete").onclick=async ()=>{ const b=$("#costDelete"); if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Kliknij ponownie, aby usunąć"; return; } await delDoc("costs",$("#c_id").value); toast("Usunięto koszt"); resetCost(); };
+$("#costDelete").onclick=async ()=>{ const b=$("#costDelete"); if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Kliknij ponownie, aby usunąć"; return; } const c=state.costs.find(x=>x.id===$("#c_id").value); if(c?.att) attRemove(c.att); await delDoc("costs",$("#c_id").value); toast("Usunięto koszt"); resetCost(); };
+$("#costsTable").addEventListener("click", e=>{ const b=e.target.closest("[data-att]"); if(!b) return; e.stopPropagation(); const c=state.costs.find(x=>x.id===b.dataset.att); if(c?.att) attOpen(c.att); }, true);
+$("#c_file").addEventListener("change", e=>{ const f=e.target.files?.[0]; if(!f) return;
+  if(f.size>ATT_MAX){ $("#c_readStatus").textContent="Plik jest za duży (limit 15 MB)."; e.target.value=""; return; }
+  pendingFile=f; removeAtt=false; renderAttInfo(state.costs.find(x=>x.id===$("#c_id").value)); readIntoForm(f); });
+$("#c_read").onclick=()=>{ if(pendingFile) readIntoForm(pendingFile); };
+$("#c_attInfo").addEventListener("click", async e=>{
+  const a=e.target.closest("[data-attact]"); if(!a) return;
+  const c=state.costs.find(x=>x.id===$("#c_id").value);
+  if(a.dataset.attact==="open"){ if(pendingFile) openBlob(pendingFile); else if(c?.att) attOpen(c.att); }
+  else { pendingFile=null; $("#c_file").value=""; removeAtt=!!c?.att; renderAttInfo(c); }
+});
 
 // documents
 $("#d_sale").addEventListener("change", e=>loadDocFor(e.target.value));
@@ -1045,6 +1200,7 @@ $("#backupUp").addEventListener("change", async e=>{
     for(const s of d.sales||[]){ if(s.id&&s.date){ await putDoc("sales",s); n++; } }
     for(const c of d.costs||[]){ if(c.id&&c.date){ await putDoc("costs",c); n++; } }
     for(const v of d.events||[]){ if(v.id&&v.date){ await putDoc("events",v); n++; } }
+    await importAttachments(d);
     if(d.settings){ state.settings={...DEFAULT_SETTINGS,...d.settings}; await saveSettings(); fillSettings(); }
     toast(`Wczytano ${n} wpisów`); renderAll();
   }catch(err){ toast("To nie jest poprawny plik kopii"); }

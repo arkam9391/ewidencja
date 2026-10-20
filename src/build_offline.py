@@ -87,7 +87,7 @@ function unlockScreen(vault){
     };
     $("#lockWipe").onclick=async ()=>{
       const b=$("#lockWipe"); if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Na pewno? Dane z tego komputera znikną"; return; }
-      await idb("readwrite",s=>{ s.delete("vault"); s.delete("main"); s.delete("backups"); });
+      await idb("readwrite",s=>s.clear());
       $("#lock").hidden=true; resolve({}); toast("Usunięto dane. Wczytaj plik kopii w zakładce Kopie bezpieczeństwa.");
     };
   });
@@ -105,13 +105,13 @@ function initLockUI(){
     if(a.length<6){ $("#lockMsg").textContent="Hasło musi mieć co najmniej 6 znaków."; return; }
     if(a!==b){ $("#lockMsg").textContent="Hasła się różnią."; return; }
     $("#lockMsg").textContent="Szyfruję dane…";
-    lock.salt=crypto.getRandomValues(new Uint8Array(16)); lock.key=await deriveKey(a, lock.salt);
-    lsSave(); await saveChain; $("#lock_pw1").value=""; $("#lock_pw2").value="";
+    const prev=lock.key; lock.salt=crypto.getRandomValues(new Uint8Array(16)); lock.key=await deriveKey(a, lock.salt);
+    lsSave(); await saveChain; await reencryptAtts(prev, lock.key); $("#lock_pw1").value=""; $("#lock_pw2").value="";
     $("#lockMsg").textContent="Hasło ustawione. Dane na tym komputerze są zaszyfrowane."; renderLock();
   };
   $("#lockOff").onclick=async ()=>{
     const b=$("#lockOff"); if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Na pewno wyłączyć?"; return; }
-    b.dataset.armed=""; b.textContent="Wyłącz hasło"; lock.key=null; lock.salt=null; lsSave(); await saveChain;
+    b.dataset.armed=""; b.textContent="Wyłącz hasło"; const prev=lock.key; lock.key=null; lock.salt=null; lsSave(); await saveChain; await reencryptAtts(prev, null);
     $("#lockMsg").textContent="Hasło wyłączone. Dane nie są już szyfrowane."; renderLock();
   };
   $("#lockNow").onclick=async ()=>{ await saveChain; location.reload(); };
@@ -125,6 +125,26 @@ src = swap_re(src, r"async function initStore\(\)\{.*?\n\}\n(?=\n// ---------- b
   await lsLoad(); fillSettings(); fillBackupSettings(); renderAll(); initLockUI();
   try{ if(navigator.storage && navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
   maybeAutoBackup();
+}
+""")
+
+# 3a. Purchase documents: same IndexedDB as the data, encrypted when a password is set.
+src = swap_re(src, r"// <att-local>.*?// </att-local>\n", r"""async function attSeal(rec, key){
+  if(!key) return rec;
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  return {name:rec.name, type:rec.type, size:rec.size, iv, ct:new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, rec.buf))};
+}
+async function attOpenRec(rec, key){
+  if(!rec || !rec.ct) return rec;
+  if(!key) throw new Error("locked");
+  return {name:rec.name, type:rec.type, size:rec.size, buf:new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM", iv:rec.iv}, key, rec.ct))};
+}
+async function attPutLocal(id, file){ const rec=await attSeal({name:file.name, type:file.type, size:file.size, buf:new Uint8Array(await file.arrayBuffer())}, lock.key); await idb("readwrite", s=>s.put(rec, "att:"+id)); }
+async function attGetLocal(id){ const r=await attOpenRec(await idb("readonly", s=>s.get("att:"+id)), lock.key); return r ? new Blob([r.buf],{type:r.type}) : null; }
+async function attDelLocal(id){ await idb("readwrite", s=>s.delete("att:"+id)); }
+async function reencryptAtts(fromKey, toKey){
+  const keys=(await idb("readonly", s=>s.getAllKeys())).filter(k=>typeof k==="string" && k.startsWith("att:"));
+  for(const k of keys){ const r=await attOpenRec(await idb("readonly", s=>s.get(k)), fromKey); const sealed=await attSeal(r, toKey); await idb("readwrite", s=>s.put(sealed, k)); }
 }
 """)
 
@@ -172,7 +192,7 @@ doc = ("<!doctype html>\n<html lang=\"pl\">\n<head>\n<meta charset=\"utf-8\">\n"
        "body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>\n"
        + head + "\n</head>\n<body>" + body + "\n</body>\n</html>\n")
 
-assert "claude.use" not in doc and "googleapis" not in doc, "online-only code left in offline build"
+assert 'use("db")' not in doc and 'use("downloads")' not in doc and "googleapis" not in doc, "online-only code left in offline build"
 (HERE / "ewidencja-offline.html").write_text(doc, encoding="utf-8")
 print("OK", len(doc), "bytes")
 
