@@ -1,4 +1,5 @@
 <title>Ewidencja sprzedaży</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%228%22%20fill%3D%22%231d5b86%22/%3E%3Cpath%20d%3D%22M10%206h12v20l-2-1.5-2%201.5-2-1.5-2%201.5-2-1.5-2%201.5z%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
@@ -35,7 +36,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .app{display:flex;min-height:100vh}
 .side{width:236px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px;padding:18px 12px;position:sticky;top:0;height:100vh;overflow-y:auto}
 .logo{display:flex;align-items:center;gap:10px;padding:2px 8px 16px}
-.logo svg rect{fill:var(--accent)}
+.logo svg rect{fill:var(--accent)} .logo svg .lp{fill:var(--accent-ink)} .logo svg .ll{stroke:var(--accent)}
 .logo b{display:block;font-size:15px;line-height:1.15}
 .logo span{display:block;font-size:11.5px;color:var(--muted);line-height:1.15}
 .navgrp{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:14px 10px 6px}
@@ -191,7 +192,7 @@ td.empty{white-space:normal}
 
 <div class="app">
   <aside class="side">
-    <div class="logo"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9"/><path d="M10 10h12M10 16h12M10 22h7" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg><div><b>Ewidencja</b><span class="lsub">sprzedaży</span></div></div>
+    <div class="logo"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path class="lp" d="M10 6h12v20l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z"/><path class="ll" d="M13 11h6M13 15h6M13 19h3.5" stroke-width="1.8" stroke-linecap="round"/></svg><div><b>Ewidencja</b><span class="lsub">sprzedaży</span></div></div>
     <nav role="tablist" id="tabs" aria-label="Sekcje programu" aria-orientation="vertical">
       <span class="navgrp">Na co dzień</span>
       <button role="tab" data-tab="pulpit" aria-selected="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Pulpit</span></button>

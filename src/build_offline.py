@@ -203,7 +203,7 @@ import json
 version = hashlib.sha1(doc.encode("utf-8") + pathlib.Path(__file__).read_bytes() + (HERE / "changelog.json").read_bytes()).hexdigest()[:10]
 pwa = HERE / "pwa"
 pwa.mkdir(exist_ok=True)
-pwa_head = ('<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n'
+pwa_head = ('<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="favicon.svg" type="image/svg+xml">\n'
             '<link rel="apple-touch-icon" href="icon.svg">\n<meta name="theme-color" content="#1d5b86">\n</head>')
 changes = json.loads((HERE / "changelog.json").read_text(encoding="utf-8"))
 pwa_boot = """<script>
@@ -266,13 +266,17 @@ pwa_doc = pwa_doc[:cut] + pwa_boot + pwa_doc[cut + len("</body>"):]
     "description": "Ewidencja sprzedaży dla działalności nierejestrowanej",
     "start_url": "./", "scope": "./", "display": "standalone",
     "background_color": "#f3f5f7", "theme_color": "#1d5b86",
-    "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}],
+    "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+              {"src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"}],
 }, ensure_ascii=False, indent=2), encoding="utf-8")
-(pwa / "icon.svg").write_text("""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#1d5b86"/><rect x="128" y="104" width="256" height="304" rx="20" fill="#fff"/><g stroke="#1d5b86" stroke-width="18" stroke-linecap="round"><line x1="172" y1="176" x2="340" y2="176"/><line x1="172" y1="236" x2="340" y2="236"/><line x1="172" y1="296" x2="280" y2="296"/></g><circle cx="332" cy="340" r="44" fill="#1f7a4d"/><path d="M312 340l14 14 26-28" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-""", encoding="utf-8")
+# Logo "Paragon": receipt with a zigzag bottom edge. icon.svg has rounded corners; the maskable one is full-bleed with the receipt inside the safe zone.
+PAPER = '<path d="M10 6h12v20l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z" fill="#fff"/><path d="M13 11h6M13 15h6M13 19h3.5" stroke="#1d5b86" stroke-width="1.8" stroke-linecap="round" fill="none"/>'
+(pwa / "icon.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#1d5b86"/>' + PAPER + '</svg>\n', encoding="utf-8")
+(pwa / "icon-maskable.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="#1d5b86"/><g transform="translate(16 16) scale(.78) translate(-16 -16)">' + PAPER + '</g></svg>\n', encoding="utf-8")
+(pwa / "favicon.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#1d5b86"/><path d="M10 6h12v20l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z" fill="#fff"/></svg>\n', encoding="utf-8")
 (pwa / "sw.js").write_text("""// Network first for the app itself (so every online start gets the newest version), cache as the offline fallback.
 const CACHE = "ewidencja-%s";
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg"];
+const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-maskable.svg", "favicon.svg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {
