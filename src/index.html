@@ -781,7 +781,7 @@ function docHTML(d){
   </div>
   <div style="display:flex;gap:30px;flex-wrap:wrap;margin-bottom:22px">
     <div style="flex:1;min-width:220px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666">Sprzedawca</div><b>${esc(st.name)||"<i style='color:#b3261e'>uzupełnij w Ustawieniach</i>"}</b><br>${esc(st.addr)}${isF&&st.nip?"<br>NIP: "+esc(st.nip):""}</div>
-    <div style="flex:1;min-width:220px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666">Nabywca</div><b>${esc(s.buyerName)||"—"}</b><br>${esc(s.buyerAddr)}${s.buyerNip?"<br>NIP: "+esc(s.buyerNip):""}</div>
+    <div style="flex:1;min-width:220px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666">Nabywca</div><b>${esc(s.buyerName)||"<i style='color:#b3261e'>brak imienia i nazwiska</i>"}</b><br>${esc(s.buyerAddr)}${s.buyerNip?"<br>NIP: "+esc(s.buyerNip):""}</div>
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:6px;background:#eef1f4">Lp.</th><th style="text-align:left;padding:6px;background:#eef1f4">Nazwa towaru lub usługi</th><th style="text-align:right;padding:6px;background:#eef1f4">Ilość</th><th style="text-align:right;padding:6px;background:#eef1f4">Cena</th><th style="text-align:right;padding:6px;background:#eef1f4">Wartość</th></tr></thead>
   <tbody>${lines.map((l,i)=>`<tr><td style="padding:6px;border-bottom:1px solid #ccc">${i+1}</td><td style="padding:6px;border-bottom:1px solid #ccc;white-space:normal">${esc(l.n)}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${l.q} szt.</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${fmt(l.v)}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${fmt(l.v*l.q)}</td></tr>`).join("")}</tbody></table>
@@ -815,6 +815,7 @@ function monthEnd(iso){ const [y,m]=iso.split("-").map(Number); const t=new Date
 function renderDocAlerts(d){
   const box=$("#docAlerts"); if(!box) return; if(!d){ box.innerHTML=""; return; }
   const s=d.s, al=[];
+  if(!String(s.buyerName||"").trim()) al.push(["crit","Brak imienia i nazwiska kupującego",`Rachunek i faktura muszą zawierać imię i nazwisko (albo nazwę firmy) nabywcy. Nazwa konta z portalu${s.buyerAccount?" ("+s.buyerAccount+")":""} ich nie zastępuje. Uzupełnij dane kupującego przy tej sprzedaży w zakładce Sprzedaż.`]);
   if(d.type==="faktura"){
     const reqBy=addMonths(monthEnd(s.date),3), issueBy=addMonths(s.date.slice(0,8)+"15",1);
     al.push(["",`Termin faktury`,`Kupujący może zażądać faktury do ${plDate(reqBy)}. Wystaw ją do ${plDate(issueBy)}, a przy późniejszym żądaniu w ciągu 15 dni od niego.`]);
@@ -1177,8 +1178,9 @@ $("#d_sale").addEventListener("change", e=>loadDocFor(e.target.value));
 $("#d_type").addEventListener("change", ()=>{ const d=docData(); if(d && (!d.s.docNo || d.s.docType!==d.type)) $("#d_no").value=nextDocNo(d.type, yearOf(d.s.date)); renderDocPreview(); });
 for(const id of ["#d_no","#d_date","#d_payText"]) $(id).addEventListener("input", renderDocPreview);
 $("#docAssign").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } await putDoc("sales",{...d.s, docType:d.type, docNo:d.no}); toast("Zapisano "+d.no+" przy sprzedaży"); };
-$("#docCopy").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } try{ await navigator.clipboard.writeText(docText(d)); toast("Skopiowano"); }catch(e){ toast("Nie udało się skopiować"); } };
-$("#docDownload").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; }
+const noBuyerName=d=>{ if(String(d.s.buyerName||"").trim()) return false; toast("Brak imienia i nazwiska kupującego. Uzupełnij je w zakładce Sprzedaż."); return true; };
+$("#docCopy").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } if(noBuyerName(d)) return; try{ await navigator.clipboard.writeText(docText(d)); toast("Skopiowano"); }catch(e){ toast("Nie udało się skopiować"); } };
+$("#docDownload").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } if(noBuyerName(d)) return;
   const html=`<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>${esc(d.no)}</title><style>body{margin:40px;background:#fff}@media print{body{margin:15mm}}</style></head><body>${docHTML(d)}</body></html>`;
   await download(`${d.type}-${d.no.replace(/\//g,"-")}.html`, html); };
 
