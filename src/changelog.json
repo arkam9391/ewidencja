@@ -38,5 +38,10 @@
     "n": 8,
     "date": "2026-10-20",
     "text": "Nowy wygląd: panel boczny z nawigacją, górna belka z wyszukiwarką (skrót /) i przyciskiem Nowa sprzedaż, Pulpit z kaflami, ostatnimi sprzedażami i kalendarzem."
+  },
+  {
+    "n": 9,
+    "date": "2026-10-20",
+    "text": "Tabele sprzedaży, kosztów i ostatnich sprzedaży mieszczą się w oknie bez przewijania w bok."
   }
 ]

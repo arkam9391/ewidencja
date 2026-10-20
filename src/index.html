@@ -159,7 +159,7 @@ td.r,th.r{text-align:right}
 tbody tr:last-child td{border-bottom:0}
 tfoot td{font-weight:600;background:var(--surface-2)}
 tr.click{cursor:pointer} tr.click:hover td{background:var(--accent-soft)}
-td.wrap-txt{white-space:normal;min-width:160px}
+td.wrap-txt{white-space:normal;min-width:120px;overflow-wrap:anywhere}
 form{display:grid;gap:12px}
 .fields{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
 label{display:grid;gap:4px;font-size:.8rem;font-weight:600;color:var(--muted)}
@@ -184,6 +184,7 @@ button.b:disabled{opacity:.5;cursor:default}
 .rules dd{margin:2px 0 0;max-width:72ch;color:var(--fg)}
 .src a{color:var(--accent)}
 .empty{padding:24px;text-align:center;color:var(--muted);font-size:.92rem}
+td.empty{white-space:normal}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:.88rem;z-index:20}
 @media (prefers-reduced-motion:reduce){.meter i{transition:none}}
 </style>
@@ -381,7 +382,7 @@ button.b:disabled{opacity:.5;cursor:default}
     <div class="card">
       <div class="row"><h2>Sprzedaże w roku <span id="salesYear"></span></h2>
         <div class="btns"><input id="salesFilter" type="search" placeholder="Szukaj: imię i nazwisko, konto, przedmiot, nr…" style="width:260px"><button class="b sm" id="salesCsv">Pobierz CSV</button></div></div>
-      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Przedmiot</th><th>Platforma</th><th>Kupujący</th><th class="r">Przychód</th><th>Płatność</th><th>Dokument</th><th>Rodzaj</th></tr></thead><tbody id="salesTable"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Przedmiot i portal</th><th>Kupujący</th><th class="r">Przychód</th><th>Dokument</th></tr></thead><tbody id="salesTable"></tbody></table></div>
       <div class="small muted">Kliknij wiersz, żeby go edytować.</div>
     </div>
   </section>
@@ -451,7 +452,7 @@ button.b:disabled{opacity:.5;cursor:default}
     </div>
     <div class="card">
       <div class="row"><h2>Koszty w roku <span id="costsYear"></span></h2><button class="b sm" id="costsCsv">Pobierz CSV</button></div>
-      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Opis</th><th>Kategoria</th><th class="r">Kwota</th><th>Dowód</th><th>Dokument</th></tr></thead><tbody id="costsTable"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Opis i kategoria</th><th class="r">Kwota</th><th>Dowód</th></tr></thead><tbody id="costsTable"></tbody></table></div>
     </div>
   </section>
 
@@ -798,7 +799,7 @@ function renderPulpit(){
   const docsPending = biz.filter(s=>s.buyerType==="firma"&&!s.docNo).length;
   $("#incYear").textContent=y; $("#incVal").textContent=fmt(rev-costs); $("#incSub").textContent=`${biz.length} ${biz.length===1?"sprzedaż":biz.length%10>=2&&biz.length%10<=4&&(biz.length%100<12||biz.length%100>14)?"sprzedaże":"sprzedaży"} · koszty ${fmt(costs)}`;
   const recent=ys.slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:(b.createdAt||0)-(a.createdAt||0)).slice(0,6);
-  $("#recentSales").innerHTML = recent.length ? recent.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}</td><td>${esc(s.platform)}</td><td>${s.buyerName?esc(s.buyerName):s.buyerAccount?esc(s.buyerAccount):'<span class="muted">—</span>'}</td><td class="r num">${fmt(revenue(s))}</td></tr>`).join("") : `<tr><td colspan="5" class="empty">Brak sprzedaży w ${y} r.</td></tr>`;
+  $("#recentSales").innerHTML = recent.length ? recent.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}</td><td class="wrap-txt" style="min-width:80px">${esc(s.platform)}</td><td class="wrap-txt" style="min-width:100px">${s.buyerName?esc(s.buyerName):s.buyerAccount?esc(s.buyerAccount):'<span class="muted">—</span>'}</td><td class="r num">${fmt(revenue(s))}</td></tr>`).join("") : `<tr><td colspan="5" class="empty">Brak sprzedaży w ${y} r.</td></tr>`;
   $("#yearStats").innerHTML = [
     ["Przychód z działalności", fmt(rev)],
     ["Koszty", fmt(costs)],
@@ -838,14 +839,14 @@ function renderSales(){
   const fq=$("#salesFilter").value||"", words=norm(fq).split(/\s+/).filter(Boolean);
   const list=yearSales().slice().reverse().filter(s=>{ if(!words.length) return true; const hay=norm([s.buyerName,s.buyerAccount,s.item,s.platform,s.docNo,s.notes,s.buyerAddr,s.buyerNip].join(" ")); return words.every(w=>hay.includes(w)); });
   const f=words.length;
-  $("#salesTable").innerHTML = list.length ? list.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}</td><td>${esc(s.platform)}</td><td>${s.buyerName?esc(s.buyerName):s.buyerAccount?esc(s.buyerAccount):'<span class="muted">—</span>'}</td><td class="r num">${fmt(revenue(s))}${+s.refund?` <span class="pill warn">zwrot</span>`:""}</td><td>${PAY_LABEL[s.pay]||""}</td><td>${s.docNo?esc(s.docNo):'<span class="muted">—</span>'}</td><td>${isBiz(s)?'<span class="pill info">działalność</span>':'<span class="pill">prywatna</span>'}</td></tr>`).join("")
-    : `<tr><td colspan="8" class="empty">${f?"Nic nie pasuje do wyszukiwania.":"Brak sprzedaży w "+state.year+" r. Dodaj pierwszą w formularzu powyżej."}</td></tr>`;
+  $("#salesTable").innerHTML = list.length ? list.map(s=>`<tr class="click" data-id="${esc(s.id)}" tabindex="0"><td class="num">${plDate(s.date)}</td><td class="wrap-txt">${esc(s.item)}${isBiz(s)?"":' <span class="pill">prywatna</span>'}<div class="small muted">${esc(s.platform)}${PAY_LABEL[s.pay]?" · "+PAY_LABEL[s.pay]:""}</div></td><td class="wrap-txt">${s.buyerName?esc(s.buyerName):s.buyerAccount?esc(s.buyerAccount):'<span class="muted">—</span>'}${s.buyerName&&s.buyerAccount?`<div class="small muted">${esc(s.buyerAccount)}</div>`:""}</td><td class="r num">${fmt(revenue(s))}${+s.refund?`<div><span class="pill warn">zwrot</span></div>`:""}</td><td>${s.docNo?esc(s.docNo):'<span class="muted">—</span>'}</td></tr>`).join("")
+    : `<tr><td colspan="5" class="empty">${f?"Nic nie pasuje do wyszukiwania.":"Brak sprzedaży w "+state.year+" r. Dodaj pierwszą w formularzu powyżej."}</td></tr>`;
 }
 function renderCosts(){
   $("#costsYear").textContent=state.year;
   const list=yearCosts().slice().reverse();
-  $("#costsTable").innerHTML = list.length ? list.map(c=>`<tr class="click" data-id="${esc(c.id)}" tabindex="0"><td class="num">${plDate(c.date)}</td><td class="wrap-txt">${esc(c.desc)}</td><td>${CAT_LABEL[c.cat]||""}</td><td class="r num">${fmt(c.amount)}</td><td>${esc(c.ref)}</td><td>${c.att?`<button type="button" class="attlink" data-att="${esc(c.id)}">${esc(c.att.type==="application/pdf"?"PDF":"Zdjęcie")}</button>`:'<span class="muted">—</span>'}</td></tr>`).join("")
-    : `<tr><td colspan="6" class="empty">Brak kosztów w ${state.year} r. Koszt zakupu towaru możesz też wpisać bezpośrednio przy sprzedaży.</td></tr>`;
+  $("#costsTable").innerHTML = list.length ? list.map(c=>`<tr class="click" data-id="${esc(c.id)}" tabindex="0"><td class="num">${plDate(c.date)}</td><td class="wrap-txt">${esc(c.desc)}<div class="small muted">${CAT_LABEL[c.cat]||""}</div></td><td class="r num">${fmt(c.amount)}</td><td class="wrap-txt" style="min-width:90px">${c.ref?esc(c.ref):'<span class="muted">—</span>'}${c.att?`<div><button type="button" class="attlink" data-att="${esc(c.id)}">${esc(c.att.type==="application/pdf"?"PDF":"Zdjęcie")}</button></div>`:""}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="empty">Brak kosztów w ${state.year} r. Koszt zakupu towaru możesz też wpisać bezpośrednio przy sprzedaży.</td></tr>`;
 }
 function ewRows(){
   const by=new Map();
