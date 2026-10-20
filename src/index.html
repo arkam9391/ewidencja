@@ -148,6 +148,7 @@ button.b:disabled{opacity:.5;cursor:default}
       <button role="tab" data-tab="pulpit" aria-selected="true">Pulpit</button>
       <button role="tab" data-tab="sprzedaz">Sprzedaż</button>
       <button role="tab" data-tab="koszty">Koszty</button>
+      <button role="tab" data-tab="produkty">Produkty</button>
       <button role="tab" data-tab="ewidencja">Ewidencja dzienna</button>
       <button role="tab" data-tab="kalendarz">Kalendarz</button>
       <button role="tab" data-tab="dokumenty">Rachunki i faktury</button>
@@ -251,6 +252,7 @@ button.b:disabled{opacity:.5;cursor:default}
         <input type="hidden" id="s_id">
         <div class="fields">
           <label>Data sprzedaży<input type="date" id="s_date" required></label>
+          <label style="grid-column:span 2">Produkt z listy<select id="s_productId"></select></label>
           <label style="grid-column:span 2">Przedmiot<input id="s_item" required placeholder="np. Kurtka zimowa Reserved M"></label>
           <label>Platforma<select id="s_platform"></select></label>
           <label>Cena (zł)<input type="number" step="0.01" min="0" id="s_price" required inputmode="decimal"></label>
@@ -304,6 +306,36 @@ button.b:disabled{opacity:.5;cursor:default}
       <div class="row"><h2>Sprzedaże w roku <span id="salesYear"></span></h2>
         <div class="btns"><input id="salesFilter" type="search" placeholder="Szukaj: imię i nazwisko, konto, przedmiot, nr…" style="width:260px"><button class="b sm" id="salesCsv">Pobierz CSV</button></div></div>
       <div class="tablewrap"><table><thead><tr><th>Data</th><th>Przedmiot</th><th>Platforma</th><th>Kupujący</th><th class="r">Przychód</th><th>Płatność</th><th>Dokument</th><th>Rodzaj</th></tr></thead><tbody id="salesTable"></tbody></table></div>
+      <div class="small muted">Kliknij wiersz, żeby go edytować.</div>
+    </div>
+  </section>
+
+  <!-- PRODUKTY -->
+  <section data-panel="produkty" hidden class="split">
+    <div class="card">
+      <div class="row"><h2 id="prodFormTitle">Nowy produkt</h2><span class="status" id="prodStatus"></span></div>
+      <p class="small muted" style="margin:0;max-width:72ch">Produkty z tej listy wybierzesz przy dodawaniu sprzedaży. Cena i koszt zakupu wpiszą się wtedy same, a w sprzedaży możesz je zmienić.</p>
+      <form id="prodForm" autocomplete="off">
+        <input type="hidden" id="p_id">
+        <div class="fields">
+          <label style="grid-column:span 2">Nazwa<input id="p_name" required placeholder="np. Kurtka zimowa Reserved M"></label>
+          <label>Kategoria lub grupa<input id="p_group" list="p_groups" placeholder="np. Odzież"><datalist id="p_groups"></datalist></label>
+          <label>Cena sprzedaży (zł)<input type="number" step="0.01" min="0" id="p_price" inputmode="decimal"></label>
+          <label>Koszt zakupu (zł)<input type="number" step="0.01" min="0" id="p_cost" inputmode="decimal"></label>
+          <label>Stan<select id="p_active"><option value="1">Dostępny</option><option value="0">Archiwalny (ukryty przy sprzedaży)</option></select></label>
+          <label style="grid-column:1/-1">Opis lub uwagi<input id="p_notes" placeholder="np. rozmiar, kolor, stan, gdzie leży"></label>
+        </div>
+        <div class="btns">
+          <button class="b primary" type="submit">Zapisz produkt</button>
+          <button class="b" type="button" id="prodReset">Wyczyść</button>
+          <button class="b danger" type="button" id="prodDelete" hidden>Usuń</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <div class="row"><h2>Lista produktów <span class="muted" id="prodCount"></span></h2>
+        <div class="btns"><input id="prodFilter" type="search" placeholder="Szukaj produktu…" style="width:220px"><label class="small" style="display:flex;flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="prodShowArch"> pokaż archiwalne</label><button class="b sm" id="prodCsv">Pobierz CSV</button></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Nazwa</th><th>Grupa</th><th class="r">Cena</th><th class="r">Koszt</th><th class="r">Sprzedano</th><th>Ostatnio</th></tr></thead><tbody id="prodTable"></tbody></table></div>
       <div class="small muted">Kliknij wiersz, żeby go edytować.</div>
     </div>
   </section>
@@ -395,6 +427,12 @@ button.b:disabled{opacity:.5;cursor:default}
   <!-- USTAWIENIA -->
   <section data-panel="ustawienia" hidden style="display:grid;gap:18px">
     <div class="card">
+      <div class="row"><h2>Portale sprzedażowe</h2><span class="status" id="platStatus"></span></div>
+      <p class="small muted" style="margin:0;max-width:72ch">Te portale pojawiają się na liście przy dodawaniu sprzedaży. Zmiana nazwy poprawia ją też we wcześniejszych sprzedażach. Odznacz DAC7 przy kanałach, które nie raportują do KAS, np. własny sklep albo sprzedaż bezpośrednia.</p>
+      <div class="tablewrap"><table><thead><tr><th>Nazwa</th><th>DAC7</th><th class="r">Sprzedaże</th><th></th></tr></thead><tbody id="platTable"></tbody></table></div>
+      <form id="platAdd" class="btns" autocomplete="off"><input id="plat_new" placeholder="Nazwa nowego portalu" style="width:240px" required><label class="small" style="display:flex;flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="plat_newDac" checked> raportuje DAC7</label><button class="b primary sm" type="submit">Dodaj portal</button></form>
+    </div>
+    <div class="card">
       <div class="row"><h2>Twoje dane na dokumentach</h2><span class="status" id="setStatus"></span></div>
       <form id="setForm" autocomplete="off">
         <div class="fields">
@@ -484,7 +522,8 @@ const PLATFORMS = ["Vinted","Allegro","Allegro Lokalnie","OLX","eBay","Etsy","Fa
 const NON_DAC7 = new Set(["Sklep własny","Bezpośrednio"]);
 const PAY_LABEL = {platforma:"Przez platformę",przelew:"Przelew",pobranie:"Pobranie",gotowka:"Gotówka/BLIK"};
 const CAT_LABEL = {towar:"Towar do odsprzedaży",wysylka:"Wysyłka",prowizja:"Prowizja platformy",opakowania:"Opakowania",reklama:"Wyróżnienia i reklama",inne:"Inne"};
-const DEFAULT_SETTINGS = {name:"",addr:"",nip:"",account:"",eurRates:{"2026":4.2156},wages:{"2025":4666,"2026":4806,"2027":4950}};
+const DEFAULT_PLATFORMS = PLATFORMS.map(name=>({name, dac7:!NON_DAC7.has(name)}));
+const DEFAULT_SETTINGS = {platforms:DEFAULT_PLATFORMS, products:[], name:"",addr:"",nip:"",account:"",eurRates:{"2026":4.2156},wages:{"2025":4666,"2026":4806,"2027":4950}};
 const KASA_LIMIT = 20000, VAT_LIMIT = 240000, DAC7_COUNT = 30, DAC7_EUR = 2000;
 
 const BK_DEFAULT = {every:7, keep:10, remindEvery:14, lastAutoAt:0, lastDownloadAt:0, lastExternalAt:0};
@@ -688,7 +727,7 @@ function renderPulpit(){
   const eur=eurRate(y), dacLim=Math.round(DAC7_EUR*eur*100)/100, by={};
   $("#dacInfo").textContent=`Platforma raportuje do KAS, gdy w roku jest co najmniej 30 transakcji albo ponad 2000 €, czyli ${fmt(dacLim)} po kursie NBP ${eur.toLocaleString("pl-PL",{minimumFractionDigits:4})} zł${state.settings.eurRates?.[y]?"":" (kurs z innego roku, uzupełnij w Ustawieniach)"}.`;
   if(!state.settings.eurRates?.[y]) autoFetchEur(y);
-  for(const s of ys){ if(NON_DAC7.has(s.platform)) continue; const p=by[s.platform]||(by[s.platform]={n:0,sum:0}); p.n++; p.sum+=revenue(s); }
+  for(const s of ys){ if(!platformDac7(s.platform)) continue; const p=by[s.platform]||(by[s.platform]={n:0,sum:0}); p.n++; p.sum+=revenue(s); }
   const rows=Object.entries(by).sort((a,b)=>b[1].sum-a[1].sum);
   $("#dacTable").innerHTML = rows.length ? rows.map(([p,v])=>{
     const e=v.sum/eur, hit=v.n>=DAC7_COUNT||v.sum>dacLim, near=!hit&&(v.n>=DAC7_COUNT*0.8||v.sum>=dacLim*0.8);
@@ -781,7 +820,7 @@ function docHTML(d){
   </div>
   <div style="display:flex;gap:30px;flex-wrap:wrap;margin-bottom:22px">
     <div style="flex:1;min-width:220px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666">Sprzedawca</div><b>${esc(st.name)||"<i style='color:#b3261e'>uzupełnij w Ustawieniach</i>"}</b><br>${esc(st.addr)}${isF&&st.nip?"<br>NIP: "+esc(st.nip):""}</div>
-    <div style="flex:1;min-width:220px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666">Nabywca</div><b>${esc(s.buyerName)||"<i style='color:#b3261e'>brak imienia i nazwiska</i>"}</b><br>${esc(s.buyerAddr)}${s.buyerNip?"<br>NIP: "+esc(s.buyerNip):""}</div>
+    <div style="flex:1;min-width:220px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666">Nabywca</div><b>${esc(s.buyerName)||"<i style='color:#b3261e'>brak imienia i nazwiska</i>"}</b><br>${esc(s.buyerAddr)||"<i style='color:#b3261e'>brak adresu</i>"}${s.buyerNip?"<br>NIP: "+esc(s.buyerNip):""}</div>
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:6px;background:#eef1f4">Lp.</th><th style="text-align:left;padding:6px;background:#eef1f4">Nazwa towaru lub usługi</th><th style="text-align:right;padding:6px;background:#eef1f4">Ilość</th><th style="text-align:right;padding:6px;background:#eef1f4">Cena</th><th style="text-align:right;padding:6px;background:#eef1f4">Wartość</th></tr></thead>
   <tbody>${lines.map((l,i)=>`<tr><td style="padding:6px;border-bottom:1px solid #ccc">${i+1}</td><td style="padding:6px;border-bottom:1px solid #ccc;white-space:normal">${esc(l.n)}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${l.q} szt.</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${fmt(l.v)}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${fmt(l.v*l.q)}</td></tr>`).join("")}</tbody></table>
@@ -815,7 +854,8 @@ function monthEnd(iso){ const [y,m]=iso.split("-").map(Number); const t=new Date
 function renderDocAlerts(d){
   const box=$("#docAlerts"); if(!box) return; if(!d){ box.innerHTML=""; return; }
   const s=d.s, al=[];
-  if(!String(s.buyerName||"").trim()) al.push(["crit","Brak imienia i nazwiska kupującego",`Rachunek i faktura muszą zawierać imię i nazwisko (albo nazwę firmy) nabywcy. Nazwa konta z portalu${s.buyerAccount?" ("+s.buyerAccount+")":""} ich nie zastępuje. Uzupełnij dane kupującego przy tej sprzedaży w zakładce Sprzedaż.`]);
+  const miss=missingBuyer(s);
+  if(miss.length) al.push(["crit",`Brak danych kupującego: ${miss.join(" oraz ")}`,`Rachunek i faktura muszą zawierać imię i nazwisko (albo nazwę firmy) oraz adres nabywcy.${!String(s.buyerName||"").trim()&&s.buyerAccount?` Nazwa konta z portalu (${s.buyerAccount}) nie zastępuje imienia i nazwiska.`:""} Uzupełnij dane przy tej sprzedaży w zakładce Sprzedaż, w sekcji „Dane kupującego i dokument”.`]);
   if(d.type==="faktura"){
     const reqBy=addMonths(monthEnd(s.date),3), issueBy=addMonths(s.date.slice(0,8)+"15",1);
     al.push(["",`Termin faktury`,`Kupujący może zażądać faktury do ${plDate(reqBy)}. Wystaw ją do ${plDate(issueBy)}, a przy późniejszym żądaniu w ciągu 15 dni od niego.`]);
@@ -842,7 +882,7 @@ function loadDocFor(id){
 }
 
 function renderAll(){
-  renderYearSelect(); renderPulpit(); renderSales(); renderCosts(); renderEw(); renderPit(); renderDocSelect(); renderDocPreview(); renderBackups(); renderCal();
+  renderYearSelect(); renderPulpit(); renderSales(); renderCosts(); renderPlatformSelect(); renderProductSelect(); renderPlatforms(); renderProducts(); renderEw(); renderPit(); renderDocSelect(); renderDocPreview(); renderBackups(); renderCal();
 }
 function renderYearSelect(){
   const ys=new Set([new Date().getFullYear(), state.year]); for(const s of state.sales) ys.add(yearOf(s.date)); for(const c of state.costs) ys.add(yearOf(c.date));
@@ -1113,12 +1153,102 @@ async function readIntoForm(file){
   if(seq===readSeq) $("#c_read").hidden=false;
 }
 
+// ---------- portals and products (kept in settings) ----------
+const platList = () => Array.isArray(state.settings.platforms) && state.settings.platforms.length ? state.settings.platforms : DEFAULT_PLATFORMS;
+const prodList = () => Array.isArray(state.settings.products) ? state.settings.products : [];
+function platformDac7(name){ const p=platList().find(x=>x.name===name); return p ? p.dac7!==false : !NON_DAC7.has(name); }
+async function saveLists(patch, msgEl){
+  state.settings={...state.settings, ...patch};
+  try{ await saveSettings(); renderAll(); return true; }catch(e){ if(msgEl) msgEl.textContent="Nie zapisano, spróbuj ponownie"; return false; }
+}
+function renderPlatformSelect(keep){
+  const sel=$("#s_platform"), cur=keep ?? sel.value, names=platList().map(p=>p.name);
+  if(keep && !names.includes(keep)) names.push(keep);
+  sel.innerHTML=names.map(n=>`<option>${esc(n)}</option>`).join("");
+  if(cur && names.includes(cur)) sel.value=cur;
+}
+function renderProductSelect(keep){
+  const sel=$("#s_productId"), cur=keep ?? sel.value;
+  const list=prodList().filter(p=>p.active!==false || p.id===cur).slice().sort((a,b)=>a.name.localeCompare(b.name,"pl"));
+  const groups={}; for(const p of list) (groups[p.group||""]=groups[p.group||""]||[]).push(p);
+  const opt=p=>`<option value="${esc(p.id)}">${esc(p.name)}${+p.price?" · "+fmt(p.price):""}</option>`;
+  sel.innerHTML='<option value="">— wpisz przedmiot ręcznie —</option>'+Object.keys(groups).sort((a,b)=>a.localeCompare(b,"pl")).map(g=>g?`<optgroup label="${esc(g)}">${groups[g].map(opt).join("")}</optgroup>`:groups[g].map(opt).join("")).join("");
+  sel.value = cur && list.some(p=>p.id===cur) ? cur : "";
+}
+$("#s_productId").addEventListener("change", e=>{
+  const p=prodList().find(x=>x.id===e.target.value); if(!p) return;
+  $("#s_item").value=p.name; if(+p.price) $("#s_price").value=p.price; if(+p.cost) $("#s_cost").value=p.cost;
+});
+function renderPlatforms(){
+  const cnt={}; for(const s of state.sales) cnt[s.platform]=(cnt[s.platform]||0)+1;
+  $("#platTable").innerHTML=platList().map((p,i)=>`<tr data-i="${i}"><td><input value="${esc(p.name)}" data-pact="name" aria-label="Nazwa portalu" style="width:100%;min-width:160px"></td><td><input type="checkbox" data-pact="dac7" ${p.dac7!==false?"checked":""} aria-label="Raportuje DAC7"></td><td class="r num">${cnt[p.name]||0}</td><td class="r"><div class="btns" style="flex-wrap:nowrap;justify-content:flex-end"><button class="b sm" type="button" data-pact="up" ${i?"":"disabled"} aria-label="W górę">↑</button><button class="b sm danger" type="button" data-pact="del">Usuń</button></div></td></tr>`).join("");
+}
+$("#platTable").addEventListener("change", async e=>{
+  const el=e.target, i=+el.closest("tr").dataset.i, list=platList().map(p=>({...p})), p=list[i];
+  if(el.dataset.pact==="dac7"){ p.dac7=el.checked; if(await saveLists({platforms:list})) toast("Zapisano"); return; }
+  if(el.dataset.pact==="name"){
+    const nn=el.value.trim(), old=p.name;
+    if(!nn || nn===old){ el.value=old; return; }
+    if(list.some((x,j)=>j!==i && x.name.toLowerCase()===nn.toLowerCase())){ $("#platStatus").textContent="Taki portal już jest na liście."; el.value=old; return; }
+    p.name=nn; $("#platStatus").textContent="Zapisuję…";
+    if(!await saveLists({platforms:list}, $("#platStatus"))) return;
+    const affected=state.sales.filter(s=>s.platform===old);
+    for(const s of affected) await putDoc("sales",{...s, platform:nn});
+    $("#platStatus").textContent=""; toast(affected.length?`Zmieniono nazwę w ${affected.length} sprzedażach`:"Zapisano");
+  }
+});
+$("#platTable").addEventListener("click", async e=>{
+  const b=e.target.closest("button[data-pact]"); if(!b) return;
+  const i=+b.closest("tr").dataset.i, list=platList().map(p=>({...p}));
+  if(b.dataset.pact==="up"){ [list[i-1],list[i]]=[list[i],list[i-1]]; await saveLists({platforms:list}); return; }
+  if(b.dataset.pact==="del"){
+    if(list.length<=1){ toast("Lista musi mieć co najmniej jeden portal"); return; }
+    if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Na pewno?"; return; }
+    list.splice(i,1); if(await saveLists({platforms:list})) toast("Usunięto portal. Wcześniejsze sprzedaże zachowują jego nazwę.");
+  }
+});
+$("#platAdd").addEventListener("submit", async e=>{
+  e.preventDefault(); const nn=$("#plat_new").value.trim(); if(!nn) return;
+  const list=platList().map(p=>({...p}));
+  if(list.some(x=>x.name.toLowerCase()===nn.toLowerCase())){ $("#platStatus").textContent="Taki portal już jest na liście."; return; }
+  list.push({name:nn, dac7:$("#plat_newDac").checked});
+  if(await saveLists({platforms:list}, $("#platStatus"))){ $("#plat_new").value=""; $("#plat_newDac").checked=true; $("#platStatus").textContent=""; toast("Dodano portal "+nn); }
+});
+// products
+function prodStats(){ const st={}; for(const s of state.sales){ if(!s.productId) continue; const x=st[s.productId]||(st[s.productId]={n:0,last:""}); x.n++; if(s.date>x.last) x.last=s.date; } return st; }
+function renderProducts(){
+  const q=norm($("#prodFilter").value).split(/\s+/).filter(Boolean), arch=$("#prodShowArch").checked, st=prodStats(), all=prodList();
+  const list=all.filter(p=>(arch||p.active!==false) && q.every(w=>norm([p.name,p.group,p.notes].join(" ")).includes(w))).sort((a,b)=>(a.group||"").localeCompare(b.group||"","pl")||a.name.localeCompare(b.name,"pl"));
+  $("#prodCount").textContent=`(${all.filter(p=>p.active!==false).length})`;
+  $("#p_groups").innerHTML=[...new Set(all.map(p=>p.group).filter(Boolean))].map(g=>`<option value="${esc(g)}">`).join("");
+  $("#prodTable").innerHTML = list.length ? list.map(p=>`<tr class="click" data-id="${esc(p.id)}" tabindex="0"><td class="wrap-txt"><b>${esc(p.name)}</b>${p.active===false?' <span class="pill">archiwalny</span>':""}${p.notes?`<div class="small muted">${esc(p.notes)}</div>`:""}</td><td>${p.group?esc(p.group):'<span class="muted">—</span>'}</td><td class="r num">${+p.price?fmt(p.price):'<span class="muted">—</span>'}</td><td class="r num">${+p.cost?fmt(p.cost):'<span class="muted">—</span>'}</td><td class="r num">${st[p.id]?.n||0}</td><td class="num">${st[p.id]?plDate(st[p.id].last):'<span class="muted">—</span>'}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">${all.length?"Brak produktów pasujących do wyszukiwania.":"Lista jest pusta. Dodaj pierwszy produkt w formularzu."}</td></tr>`;
+}
+function resetProd(){ $("#prodForm").reset(); $("#p_id").value=""; $("#prodFormTitle").textContent="Nowy produkt"; $("#prodDelete").hidden=true; $("#prodDelete").dataset.armed=""; $("#prodDelete").textContent="Usuń"; }
+$("#prodFilter").addEventListener("input", renderProducts); $("#prodShowArch").addEventListener("change", renderProducts);
+$("#prodReset").onclick=resetProd;
+$("#prodForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const id=$("#p_id").value||uid(), list=prodList().map(p=>({...p})), i=list.findIndex(p=>p.id===id);
+  const o={id, name:$("#p_name").value.trim(), group:$("#p_group").value.trim(), price:+$("#p_price").value||0, cost:+$("#p_cost").value||0, notes:$("#p_notes").value.trim(), active:$("#p_active").value==="1", createdAt:i>=0?list[i].createdAt:Date.now()};
+  if(!o.name) return;
+  if(i>=0) list[i]=o; else list.push(o);
+  $("#prodStatus").textContent="Zapisuję…";
+  if(await saveLists({products:list}, $("#prodStatus"))){ $("#prodStatus").textContent=""; toast(i>=0?"Zapisano zmiany":"Dodano produkt"); resetProd(); }
+});
+$("#prodDelete").onclick=async ()=>{
+  const b=$("#prodDelete"); if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Kliknij ponownie, aby usunąć"; return; }
+  const id=$("#p_id").value; if(await saveLists({products:prodList().filter(p=>p.id!==id)})){ toast("Usunięto produkt. Sprzedaże z nim zostają bez zmian."); resetProd(); }
+};
+$("#prodCsv").onclick=()=>download("produkty.csv", csv([["Nazwa","Grupa","Cena","Koszt zakupu","Stan","Uwagi","Sprzedano"],...prodList().map(p=>[p.name,p.group,n2(p.price),n2(p.cost),p.active===false?"archiwalny":"dostępny",p.notes,prodStats()[p.id]?.n||0])]));
+
 // ---------- forms ----------
-const SALE_FIELDS=["date","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAccount","buyerAddr","buyerNip","docType","docNo","notes"];
+const SALE_FIELDS=["date","productId","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAccount","buyerAddr","buyerNip","docType","docNo","notes"];
 const NUMS=new Set(["price","ship","cost","refund","amount","eur"]);
-function resetSale(){ $("#saleForm").reset(); $("#s_id").value=""; $("#s_date").value=today(); $("#saleFormTitle").textContent="Nowa sprzedaż"; $("#saleDelete").hidden=true; $("#saleDoc").hidden=true; $("#saleDelete").dataset.armed=""; $("#saleDelete").textContent="Usuń"; }
+function resetSale(){ renderPlatformSelect(); renderProductSelect(); $("#saleForm").reset(); $("#s_id").value=""; $("#s_date").value=today(); $("#saleFormTitle").textContent="Nowa sprzedaż"; $("#saleDelete").hidden=true; $("#saleDoc").hidden=true; $("#saleDelete").dataset.armed=""; $("#saleDelete").textContent="Usuń"; }
 function editSale(id){
   const s=state.sales.find(x=>x.id===id); if(!s) return;
+  renderPlatformSelect(s.platform); renderProductSelect(s.productId);
   $("#s_id").value=s.id; for(const f of SALE_FIELDS){ const el=$("#s_"+f); if(el) el.value = s[f] ?? (NUMS.has(f)?0:""); }
   $("#saleFormTitle").textContent="Edycja sprzedaży"; $("#saleDelete").hidden=false; $("#saleDoc").hidden=!isBiz(s);
   $("#saleForm").scrollIntoView({behavior:"smooth",block:"start"});
@@ -1141,6 +1271,7 @@ $("#saleDelete").onclick=async ()=>{
 $("#saleDoc").onclick=()=>{ const id=$("#s_id").value; switchTab("dokumenty"); renderDocSelect(id); loadDocFor(id); };
 function rowClick(tbody, fn){ tbody.addEventListener("click",e=>{ const tr=e.target.closest("tr[data-id]"); if(tr) fn(tr.dataset.id); }); tbody.addEventListener("keydown",e=>{ if(e.key==="Enter"){ const tr=e.target.closest("tr[data-id]"); if(tr) fn(tr.dataset.id); } }); }
 rowClick($("#salesTable"), editSale);
+rowClick($("#prodTable"), id=>{ const p=prodList().find(x=>x.id===id); if(!p) return; $("#p_id").value=p.id; $("#p_name").value=p.name; $("#p_group").value=p.group||""; $("#p_price").value=+p.price||""; $("#p_cost").value=+p.cost||""; $("#p_notes").value=p.notes||""; $("#p_active").value=p.active===false?"0":"1"; $("#prodFormTitle").textContent="Edycja produktu"; $("#prodDelete").hidden=false; $("#prodForm").scrollIntoView({behavior:"smooth",block:"start"}); });
 $("#salesFilter").addEventListener("input", renderSales);
 
 const COST_FIELDS=["date","desc","cat","amount","ref"];
@@ -1178,7 +1309,8 @@ $("#d_sale").addEventListener("change", e=>loadDocFor(e.target.value));
 $("#d_type").addEventListener("change", ()=>{ const d=docData(); if(d && (!d.s.docNo || d.s.docType!==d.type)) $("#d_no").value=nextDocNo(d.type, yearOf(d.s.date)); renderDocPreview(); });
 for(const id of ["#d_no","#d_date","#d_payText"]) $(id).addEventListener("input", renderDocPreview);
 $("#docAssign").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } await putDoc("sales",{...d.s, docType:d.type, docNo:d.no}); toast("Zapisano "+d.no+" przy sprzedaży"); };
-const noBuyerName=d=>{ if(String(d.s.buyerName||"").trim()) return false; toast("Brak imienia i nazwiska kupującego. Uzupełnij je w zakładce Sprzedaż."); return true; };
+function missingBuyer(s){ const m=[]; if(!String(s.buyerName||"").trim()) m.push("imię i nazwisko"); if(!String(s.buyerAddr||"").trim()) m.push("adres"); return m; }
+const noBuyerName=d=>{ const m=missingBuyer(d.s); if(!m.length) return false; toast(`Brak danych kupującego: ${m.join(" oraz ")}. Uzupełnij je w zakładce Sprzedaż.`); return true; };
 $("#docCopy").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } if(noBuyerName(d)) return; try{ await navigator.clipboard.writeText(docText(d)); toast("Skopiowano"); }catch(e){ toast("Nie udało się skopiować"); } };
 $("#docDownload").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw wybierz sprzedaż"); return; } if(noBuyerName(d)) return;
   const html=`<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>${esc(d.no)}</title><style>body{margin:40px;background:#fff}@media print{body{margin:15mm}}</style></head><body>${docHTML(d)}</body></html>`;
@@ -1216,7 +1348,7 @@ $("#setForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const eurRates={}; document.querySelectorAll("#eurFields input").forEach(i=>{ if(+i.value) eurRates[i.dataset.year]=+i.value; });
   const wages={}; document.querySelectorAll("#wageFields input").forEach(i=>{ if(+i.value) wages[i.dataset.year]=+i.value; });
-  state.settings={name:$("#st_name").value.trim(),addr:$("#st_addr").value.trim(),nip:$("#st_nip").value.trim(),account:$("#st_account").value.trim(),eurRates,wages};
+  state.settings={...state.settings, name:$("#st_name").value.trim(),addr:$("#st_addr").value.trim(),nip:$("#st_nip").value.trim(),account:$("#st_account").value.trim(),eurRates,wages};
   try{ await saveSettings(); toast("Zapisano ustawienia"); renderAll(); }catch(err){ $("#setStatus").textContent="Nie zapisano, spróbuj ponownie"; }
 });
 
@@ -1276,7 +1408,6 @@ $("#tabs").addEventListener("click", e=>{ const b=e.target.closest("button[data-
 $("#year").addEventListener("change", e=>{ state.year=+e.target.value; renderAll(); });
 
 // boot
-const s_plat=$("#s_platform"); s_plat.innerHTML=PLATFORMS.map(p=>`<option>${p}</option>`).join("");
 resetSale(); resetCost(); resetEv(today()); fillSettings(); fillBackupSettings(); initNotifUI(); renderCal._day=today();
 setTimeout(checkReminders, 3000);
 const hashTab=(location.hash||"").slice(1); let saved=null; try{ saved=localStorage.getItem(LS+"-tab"); }catch(e){}

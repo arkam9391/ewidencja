@@ -200,33 +200,67 @@ print("OK", len(doc), "bytes")
 import hashlib
 import json
 
-version = hashlib.sha1(doc.encode("utf-8") + pathlib.Path(__file__).read_bytes()).hexdigest()[:10]
+version = hashlib.sha1(doc.encode("utf-8") + pathlib.Path(__file__).read_bytes() + (HERE / "changelog.json").read_bytes()).hexdigest()[:10]
 pwa = HERE / "pwa"
 pwa.mkdir(exist_ok=True)
 pwa_head = ('<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n'
             '<link rel="apple-touch-icon" href="icon.svg">\n<meta name="theme-color" content="#1d5b86">\n</head>')
+changes = json.loads((HERE / "changelog.json").read_text(encoding="utf-8"))
 pwa_boot = """<script>
 (() => {
-  const V = "%s";
-  try{ const old = localStorage.getItem("ewidencja-app-version"); localStorage.setItem("ewidencja-app-version", V);
-    if(old && old !== V){ const t=document.getElementById("toast"); if(t){ t.textContent="Program został zaktualizowany do najnowszej wersji"; t.hidden=false; setTimeout(()=>t.hidden=true,4000); } } }catch(e){}
+  const V = "%s", CH = %s, LAST = CH.length ? CH[CH.length-1].n : 0;
+  const ls = (k, v) => { try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){ return null; } };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  // After an update: say what is new since the version this device ran before.
+  const old = ls("ewidencja-app-version"), seen = +(ls("ewidencja-seen-change")||0);
+  ls("ewidencja-app-version", V); ls("ewidencja-seen-change", String(LAST));
+  if(old && old !== V){
+    const fresh = CH.filter(c => c.n > seen).slice(-5);
+    setTimeout(() => showBar("Program zaktualizowany", fresh, false), 600);
+  }
+  function showBar(title, items, withReload){
+    let bar = document.getElementById("updBar");
+    if(!bar){ bar = document.createElement("div"); bar.id = "updBar"; bar.className = "card"; bar.setAttribute("role", "status");
+      bar.style.cssText = "position:fixed;left:16px;right:16px;bottom:16px;z-index:40;max-width:560px;margin-inline:auto;box-shadow:0 10px 30px rgba(0,0,0,.25);border:2px solid var(--accent,#1d5b86)";
+      document.body.appendChild(bar); }
+    bar.innerHTML = `<div class="row"><h2 style="margin:0">${esc(title)}</h2><button class="b sm" type="button" data-upd="close" aria-label="Zamknij">✕</button></div>`
+      + (items.length ? `<ul class="small" style="margin:6px 0 0;padding-left:18px">${items.map(c => `<li>${esc(c.text)}</li>`).join("")}</ul>` : "")
+      + (withReload ? `<p class="small muted" style="margin:8px 0 0">Wpisane dane są już zapisane. Niezapisany formularz zostanie wyczyszczony.</p><div class="btns" style="margin-top:8px"><button class="b primary" type="button" data-upd="reload">Przeładuj teraz</button><button class="b" type="button" data-upd="close">Później</button></div>` : "");
+    bar.hidden = false;
+    bar.onclick = e => { const b = e.target.closest("[data-upd]"); if(!b) return;
+      if(b.dataset.upd === "reload"){ b.disabled = true; b.textContent = "Przeładowuję…"; location.reload(); }
+      else { bar.hidden = true; if(withReload) snoozed = Date.now(); } };
+  }
+  let snoozed = 0, offered = null;
+  async function check(){
+    if(!navigator.onLine) return;
+    try{
+      const r = await fetch("version.json?t=" + Date.now(), {cache: "no-store"}); if(!r.ok) return;
+      const j = await r.json(); if(!j.version || j.version === V) return;
+      if(offered === j.version && Date.now() - snoozed < 3600000) return;
+      if(offered === j.version && !document.getElementById("updBar")?.hidden) return;
+      offered = j.version;
+      showBar("Dostępna jest nowa wersja programu", (j.changes||[]).filter(c => c.n > LAST).slice(-5), true);
+    }catch(e){}
+  }
   if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-    navigator.serviceWorker.register("sw.js").then(reg => { setInterval(()=>reg.update().catch(()=>{}), 3600000); }).catch(()=>{});
-    let reloaded=false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if(reloaded) return; reloaded=true;
-      const busy=[...document.querySelectorAll("form input:not([type=hidden])")].some(i=>i.value && i.value!==i.defaultValue && i.type!=="date" && i.type!=="number");
-      if(!busy) location.reload();
-    });
+    navigator.serviceWorker.register("sw.js").then(reg => { setInterval(() => reg.update().catch(() => {}), 1800000); }).catch(() => {});
+    navigator.serviceWorker.addEventListener("controllerchange", check);
+  }
+  if(location.protocol.startsWith("http")){
+    setTimeout(check, 5000); setInterval(check, 900000);
+    document.addEventListener("visibilitychange", () => { if(!document.hidden) check(); });
+    addEventListener("online", check);
   }
 })();
 </script>
-</body>""" % version
+</body>""" % (version, json.dumps(changes, ensure_ascii=False))
 # The app script itself contains "</body>" inside a template string, so splice at the LAST one.
 pwa_doc = doc.replace("</head>", pwa_head, 1)
 cut = pwa_doc.rindex("</body>")
 pwa_doc = pwa_doc[:cut] + pwa_boot + pwa_doc[cut + len("</body>"):]
 (pwa / "index.html").write_text(pwa_doc, encoding="utf-8")
+(pwa / "version.json").write_text(json.dumps({"version": version, "changes": changes}, ensure_ascii=False), encoding="utf-8")
 (pwa / "manifest.webmanifest").write_text(json.dumps({
     "name": "Ewidencja sprzedaży", "short_name": "Ewidencja", "lang": "pl",
     "description": "Ewidencja sprzedaży dla działalności nierejestrowanej",
@@ -242,7 +276,8 @@ const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
+  const url = new URL(e.request.url);
+  if (e.request.method !== "GET" || url.origin !== location.origin || url.pathname.endsWith("/version.json")) return;
   e.respondWith(
     Promise.race([fetch(e.request, {cache: "no-cache"}), new Promise((_, rej) => setTimeout(rej, 4000))])
       .then(r => { if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); } return r; })
