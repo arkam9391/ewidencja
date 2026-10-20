@@ -180,7 +180,7 @@ print("OK", len(doc), "bytes")
 import hashlib
 import json
 
-version = hashlib.sha1(doc.encode("utf-8")).hexdigest()[:10]
+version = hashlib.sha1(doc.encode("utf-8") + pathlib.Path(__file__).read_bytes()).hexdigest()[:10]
 pwa = HERE / "pwa"
 pwa.mkdir(exist_ok=True)
 pwa_head = ('<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n'
@@ -202,7 +202,10 @@ pwa_boot = """<script>
 })();
 </script>
 </body>""" % version
-pwa_doc = doc.replace("</head>", pwa_head, 1).replace("</body>", pwa_boot, 1)
+# The app script itself contains "</body>" inside a template string, so splice at the LAST one.
+pwa_doc = doc.replace("</head>", pwa_head, 1)
+cut = pwa_doc.rindex("</body>")
+pwa_doc = pwa_doc[:cut] + pwa_boot + pwa_doc[cut + len("</body>"):]
 (pwa / "index.html").write_text(pwa_doc, encoding="utf-8")
 (pwa / "manifest.webmanifest").write_text(json.dumps({
     "name": "Ewidencja sprzedaży", "short_name": "Ewidencja", "lang": "pl",
