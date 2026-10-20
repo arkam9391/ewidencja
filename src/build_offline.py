@@ -27,7 +27,7 @@ def swap_re(text, pattern, new):
 src = swap_re(src, r'<link rel="preconnect"[^>]*>\s*<link rel="stylesheet" href="https://fonts\.googleapis\.com[^>]*>\s*', "")
 
 # 2. Labels and copy that mention claude.ai.
-src = swap(src, '<small>działalność nierejestrowana</small>', '<small>działalność nierejestrowana · wersja offline</small>')
+src = swap(src, '<span class="lsub">sprzedaży</span>', '<span class="lsub">sprzedaży · na komputerze</span>')
 src = swap(src, "Kopie w aplikacji chronią przed pomyłką, np. przypadkowym usunięciem wpisu. Przed awarią konta chroni tylko kopia poza claude.ai: pobierz plik i przenieś go na pendrive, dysk zewnętrzny albo do chmury, potem potwierdź to przyciskiem.",
            "Dane i kopie w aplikacji są zapisane w przeglądarce na tym komputerze. Chronią przed pomyłką, np. przypadkowym usunięciem wpisu, ale znikną po wyczyszczeniu danych przeglądarki albo awarii dysku. Dlatego regularnie pobieraj plik kopii, przenoś go na pendrive lub dysk zewnętrzny i potwierdzaj to przyciskiem.")
 src = swap(src, "Wybierz plik JSON pobrany wcześniej z tej aplikacji.",
