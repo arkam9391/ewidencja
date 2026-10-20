@@ -191,7 +191,7 @@ button.b:disabled{opacity:.5;cursor:default}
       <div class="tablewrap"><table><thead><tr><th>Kwartał</th><th class="r">Przychód</th><th class="r">Limit</th><th class="r">Wykorzystanie</th><th>Stan</th></tr></thead><tbody id="qTable"></tbody></table></div>
     </div>
     <div class="card">
-      <div class="row"><h2>Platformy i DAC7</h2><span class="small muted">Platforma raportuje do KAS, gdy w roku jest co najmniej 30 transakcji albo ponad 2000 €.</span></div>
+      <div class="row"><h2>Platformy i DAC7</h2><span class="small muted" id="dacInfo">Platforma raportuje do KAS, gdy w roku jest co najmniej 30 transakcji albo ponad 2000 €.</span></div>
       <div class="tablewrap"><table><thead><tr><th>Platforma</th><th class="r">Transakcje</th><th class="r">Kwota</th><th class="r">W euro</th><th>DAC7</th></tr></thead><tbody id="dacTable"></tbody></table></div>
     </div>
    </div>
@@ -400,8 +400,11 @@ button.b:disabled{opacity:.5;cursor:default}
           <label style="grid-column:span 2">Adres<input id="st_addr"></label>
           <label>NIP (tylko do faktur)<input id="st_nip" inputmode="numeric"></label>
           <label>Numer konta<input id="st_account"></label>
-          <label>Kurs euro do DAC7 (zł)<input type="number" step="0.0001" id="st_eur"></label>
         </div>
+        <h3>Kurs euro do progu DAC7</h3>
+        <div class="fields" id="eurFields"></div>
+        <p class="small muted" style="margin:0;max-width:72ch">Raport DAC7 jest w złotych, a próg 2000 € przelicza się raz na rok po średnim kursie NBP z pierwszego dnia roboczego roku (art. 75a ust. 5 ustawy o wymianie informacji podatkowych). Program pobiera ten kurs z NBP sam, gdy ma dostęp do internetu. Możesz go też wpisać ręcznie.</p>
+        <div class="btns"><button class="b sm" type="button" id="eurFetch">Pobierz kursy z NBP</button><span class="status" id="eurStatus"></span></div>
         <h3>Minimalne wynagrodzenie (podstawa limitu)</h3>
         <div class="fields" id="wageFields"></div>
         <p class="small muted" style="margin:0;max-width:72ch">Od 2026 r. limit wynosi 225% minimalnego wynagrodzenia na kwartał. Do 2025 r. było to 75% na miesiąc. Kwota na 2027 r. pochodzi z projektu rozporządzenia, zmień ją, jeśli ostateczna będzie inna.</p>
@@ -460,7 +463,7 @@ button.b:disabled{opacity:.5;cursor:default}
         <dt>VAT</dt>
         <dd>Zwolnienie podmiotowe do 240 000 zł sprzedaży w roku. Przy limicie działalności nierejestrowanej praktycznie nieosiągalne.</dd>
         <dt>DAC7</dt>
-        <dd>Platformy (Vinted, Allegro, OLX itd.) przekazują do KAS dane sprzedawców, którzy mają w roku co najmniej 30 transakcji albo ponad 2000 € wynagrodzenia. To próg raportowy, nie podatkowy.</dd>
+        <dd>Platformy (Vinted, Allegro, OLX itd.) przekazują do KAS dane sprzedawców, którzy mają w roku co najmniej 30 transakcji albo ponad 2000 € wynagrodzenia. Kwoty w raporcie są w złotych, a próg 2000 € przelicza się po średnim kursie NBP z pierwszego dnia roboczego roku (na 2026 r. 4,2156 zł, czyli 8431,20 zł). To próg raportowy, nie podatkowy.</dd>
         <dt>PIT</dt>
         <dd>PIT-36, „inne źródła”, do 30 kwietnia następnego roku. Dochód = przychód minus udokumentowane koszty. Bez zaliczek i bez ZUS.</dd>
         <dt>Rzeczy prywatne</dt>
@@ -479,7 +482,7 @@ const PLATFORMS = ["Vinted","Allegro","Allegro Lokalnie","OLX","eBay","Etsy","Fa
 const NON_DAC7 = new Set(["Sklep własny","Bezpośrednio"]);
 const PAY_LABEL = {platforma:"Przez platformę",przelew:"Przelew",pobranie:"Pobranie",gotowka:"Gotówka/BLIK"};
 const CAT_LABEL = {towar:"Towar do odsprzedaży",wysylka:"Wysyłka",prowizja:"Prowizja platformy",opakowania:"Opakowania",reklama:"Wyróżnienia i reklama",inne:"Inne"};
-const DEFAULT_SETTINGS = {name:"",addr:"",nip:"",account:"",eur:4.25,wages:{"2025":4666,"2026":4806,"2027":4950}};
+const DEFAULT_SETTINGS = {name:"",addr:"",nip:"",account:"",eurRates:{"2026":4.2156},wages:{"2025":4666,"2026":4806,"2027":4950}};
 const KASA_LIMIT = 20000, VAT_LIMIT = 240000, DAC7_COUNT = 30, DAC7_EUR = 2000;
 
 const BK_DEFAULT = {every:7, keep:10, remindEvery:14, lastAutoAt:0, lastDownloadAt:0, lastExternalAt:0};
@@ -541,7 +544,7 @@ async function initStore(){
   db.collection("events").limit(1000).onSnapshot(s => { state.events = s.docs.map(x=>({...x.data(), id:x.id})); renderCal(); }, onErr);
   db.collection("backups").limit(200).onSnapshot(s => { state.backups = s.docs.map(x=>({...x.data(), id:x.id})); renderBackups(); mark("backups",s); }, onErr);
   db.doc("config/backupState").onSnapshot(s => { if(s.exists){ state.bstate={...BK_DEFAULT,...s.data()}; fillBackupSettings(); renderAll(); } mark("bstate",s); }, onErr);
-  db.doc("config/settings").onSnapshot(s => { if(s.exists){ const v=s.data(); state.settings={...DEFAULT_SETTINGS,...v,wages:{...DEFAULT_SETTINGS.wages,...(v.wages||{})}}; fillSettings(); renderAll(); } }, onErr);
+  db.doc("config/settings").onSnapshot(s => { if(s.exists){ const v=s.data(); state.settings={...DEFAULT_SETTINGS,...v,wages:{...DEFAULT_SETTINGS.wages,...(v.wages||{})},eurRates:{...DEFAULT_SETTINGS.eurRates,...(v.eurRates||{})}}; fillSettings(); renderAll(); } }, onErr);
 }
 
 // ---------- backups ----------
@@ -680,11 +683,13 @@ function renderPulpit(){
   ].map(([k,v])=>`<tr><td class="muted" style="padding-left:0">${k}</td><td class="r num" style="padding-right:0">${v}</td></tr>`).join("");
 
   // DAC7
-  const eur=+state.settings.eur||4.25, by={};
+  const eur=eurRate(y), dacLim=Math.round(DAC7_EUR*eur*100)/100, by={};
+  $("#dacInfo").textContent=`Platforma raportuje do KAS, gdy w roku jest co najmniej 30 transakcji albo ponad 2000 €, czyli ${fmt(dacLim)} po kursie NBP ${eur.toLocaleString("pl-PL",{minimumFractionDigits:4})} zł${state.settings.eurRates?.[y]?"":" (kurs z innego roku, uzupełnij w Ustawieniach)"}.`;
+  if(!state.settings.eurRates?.[y]) autoFetchEur(y);
   for(const s of ys){ if(NON_DAC7.has(s.platform)) continue; const p=by[s.platform]||(by[s.platform]={n:0,sum:0}); p.n++; p.sum+=revenue(s); }
   const rows=Object.entries(by).sort((a,b)=>b[1].sum-a[1].sum);
   $("#dacTable").innerHTML = rows.length ? rows.map(([p,v])=>{
-    const e=v.sum/eur, hit=v.n>=DAC7_COUNT||e>DAC7_EUR, near=!hit&&(v.n>=DAC7_COUNT*0.8||e>=DAC7_EUR*0.8);
+    const e=v.sum/eur, hit=v.n>=DAC7_COUNT||v.sum>dacLim, near=!hit&&(v.n>=DAC7_COUNT*0.8||v.sum>=dacLim*0.8);
     return `<tr><td>${esc(p)}</td><td class="r num">${v.n} / ${DAC7_COUNT}</td><td class="r num">${fmt(v.sum)}</td><td class="r num">${fmtE(e)}</td><td>${hit?'<span class="pill info">zgłosi do KAS</span>':near?'<span class="pill warn">blisko progu</span>':'<span class="pill">poniżej progu</span>'}</td></tr>`;
   }).join("") : `<tr><td colspan="5" class="empty">Brak sprzedaży przez platformy w ${y} r.</td></tr>`;
 
@@ -697,7 +702,7 @@ function renderPulpit(){
   if(kr>1) al.push(["crit","Przekroczony limit zwolnienia z kasy fiskalnej",`Sprzedaż osobom prywatnym poza zwolnieniem wysyłkowym wynosi ${fmt(kb)}. Sprawdź obowiązek kasy fiskalnej.`]);
   else if(kr>=0.8) al.push(["warn","Zbliżasz się do limitu kasy fiskalnej",`Sprzedaż gotówkowa lub z odbiorem osobistym: ${fmt(kb)} z 20 000 zł. Przyjmuj zapłatę przelewem przy wysyłce, żeby korzystać ze zwolnienia.`]);
   if(docsPending) al.push(["warn",`${docsPending} ${docsPending===1?"sprzedaż":"sprzedaże"} dla firm bez dokumentu`,"Firmy zwykle potrzebują rachunku albo faktury. Wystawisz je w zakładce Rachunki i faktury."]);
-  const dacHit=rows.filter(([,v])=>v.n>=DAC7_COUNT||v.sum/eur>DAC7_EUR).map(([p])=>p);
+  const dacHit=rows.filter(([,v])=>v.n>=DAC7_COUNT||v.sum>dacLim).map(([p])=>p);
   if(dacHit.length) al.push(["info",`DAC7: ${dacHit.join(", ")} przekaże Twoje dane do KAS za ${y} r.`,"Nie oznacza to podatku, ale dane z platformy powinny zgadzać się z ewidencją i PIT-36."]);
   if(!state.sales.length) al.push(["info","Zacznij od dodania pierwszej sprzedaży","Zakładka Sprzedaż. Pulpit przeliczy limit, kasę fiskalną i DAC7 automatycznie."]);
   $("#alerts").innerHTML = (typeof reminderAlerts!=="undefined"?reminderAlerts.join(""):"") + (externalDue()?reminderHTML():"") + (al.map(([k,t,d])=>`<div class="alert ${k==="info"?"":k}"><strong>${esc(t)}</strong>${esc(d)}</div>`).join("") || `<div class="alert ok"><strong>Wszystko w normie</strong>Przychód w limicie, bez sygnałów o kasie fiskalnej i brakujących dokumentach.</div>`);
@@ -1144,16 +1149,39 @@ $("#docDownload").onclick=async ()=>{ const d=docData(); if(!d){ toast("Najpierw
   const html=`<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>${esc(d.no)}</title><style>body{margin:40px;background:#fff}@media print{body{margin:15mm}}</style></head><body>${docHTML(d)}</body></html>`;
   await download(`${d.type}-${d.no.replace(/\//g,"-")}.html`, html); };
 
+// EUR rate for the DAC7 threshold: NBP table A, first working day of the year
+function eurRate(y){ const r=state.settings.eurRates||{}; if(+r[y]) return +r[y]; const ks=Object.keys(r).filter(k=>+r[k]).sort((a,b)=>Math.abs(a-y)-Math.abs(b-y)); return ks.length ? +r[ks[0]] : 4.2156; }
+async function fetchNbpEur(y){
+  const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),8000);
+  try{ const r=await fetch(`https://api.nbp.pl/api/exchangerates/rates/a/eur/${y}-01-01/${y}-01-12/?format=json`,{signal:ctl.signal}); if(!r.ok) return null; const j=await r.json(); const x=j.rates?.[0]; return x ? {rate:x.mid, table:x.no, date:x.effectiveDate} : null; }
+  catch(e){ return null; } finally{ clearTimeout(t); }
+}
+async function saveEurRate(y, rate){ state.settings={...state.settings, eurRates:{...(state.settings.eurRates||{}), [y]:rate}}; await saveSettings(); }
+function autoFetchEur(y){
+  autoFetchEur.tried=autoFetchEur.tried||{}; if(autoFetchEur.tried[y] || y>new Date().getFullYear()) return; autoFetchEur.tried[y]=1;
+  fetchNbpEur(y).then(async x=>{ if(x && !state.settings.eurRates?.[y]){ await saveEurRate(String(y), x.rate); fillSettings(); renderAll(); } });
+}
+$("#eurFetch").onclick=async ()=>{
+  const ys=[...document.querySelectorAll("#eurFields input")].map(i=>i.dataset.year).filter(y=>+y<=new Date().getFullYear()); const got=[];
+  $("#eurStatus").textContent="Pobieram z NBP…";
+  for(const y of ys){ const x=await fetchNbpEur(y); if(x){ await saveEurRate(y, x.rate); got.push(`${y}: ${x.rate.toLocaleString("pl-PL",{minimumFractionDigits:4})} (tabela ${x.table})`); } }
+  $("#eurStatus").textContent = got.length ? "Pobrano "+got.join(", ") : "Nie udało się połączyć z NBP. Wpisz kurs ręcznie.";
+  if(got.length){ fillSettings(); renderAll(); }
+};
+
 // settings
 function fillSettings(){
-  const st=state.settings; $("#st_name").value=st.name||""; $("#st_addr").value=st.addr||""; $("#st_nip").value=st.nip||""; $("#st_account").value=st.account||""; $("#st_eur").value=st.eur||4.25;
+  const st=state.settings; $("#st_name").value=st.name||""; $("#st_addr").value=st.addr||""; $("#st_nip").value=st.nip||""; $("#st_account").value=st.account||"";
+  const ey=new Set(Object.keys(st.eurRates||{})); for(const s of state.sales) ey.add(String(yearOf(s.date))); ey.add(String(new Date().getFullYear()));
+  $("#eurFields").innerHTML=[...ey].filter(y=>+y>=2023).sort().map(y=>`<label>${y} r. (zł za 1 €)<input type="number" step="0.0001" id="eur_${y}" data-year="${y}" value="${st.eurRates?.[y]??""}"></label>`).join("");
   const ys=Object.keys(st.wages||{}).sort(); const cy=String(new Date().getFullYear()+1); if(!ys.includes(cy)) ys.push(cy);
   $("#wageFields").innerHTML=ys.map(y=>`<label>${y} r. (zł)<input type="number" step="0.01" id="wage_${y}" data-year="${y}" value="${st.wages?.[y]??""}"></label>`).join("");
 }
 $("#setForm").addEventListener("submit", async e=>{
   e.preventDefault();
+  const eurRates={}; document.querySelectorAll("#eurFields input").forEach(i=>{ if(+i.value) eurRates[i.dataset.year]=+i.value; });
   const wages={}; document.querySelectorAll("#wageFields input").forEach(i=>{ if(+i.value) wages[i.dataset.year]=+i.value; });
-  state.settings={name:$("#st_name").value.trim(),addr:$("#st_addr").value.trim(),nip:$("#st_nip").value.trim(),account:$("#st_account").value.trim(),eur:+$("#st_eur").value||4.25,wages};
+  state.settings={name:$("#st_name").value.trim(),addr:$("#st_addr").value.trim(),nip:$("#st_nip").value.trim(),account:$("#st_account").value.trim(),eurRates,wages};
   try{ await saveSettings(); toast("Zapisano ustawienia"); renderAll(); }catch(err){ $("#setStatus").textContent="Nie zapisano, spróbuj ponownie"; }
 });
 
