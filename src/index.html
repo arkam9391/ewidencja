@@ -705,14 +705,20 @@ function lsLoad(){ try{ const d=JSON.parse(localStorage.getItem(LS)||"null"); if
 function lsSave(){ try{ localStorage.setItem(LS, JSON.stringify({sales:state.sales,costs:state.costs,events:state.events,settings:state.settings,backups:state.backups,bstate:state.bstate})); }catch(e){} }
 
 async function putDoc(coll, obj){
+  obj.updatedAt=Date.now();
   if(db){ await db.collection(coll).doc(obj.id).set(obj); }
   else { const arr=state[coll]; const i=arr.findIndex(x=>x.id===obj.id); if(i>=0) arr[i]=obj; else arr.push(obj); lsSave(); renderAll(); }
 }
 async function delDoc(coll, id){
   if(db){ await db.collection(coll).doc(id).delete(); }
-  else { state[coll]=state[coll].filter(x=>x.id!==id); lsSave(); renderAll(); }
+  else { state[coll]=state[coll].filter(x=>x.id!==id); state.tomb={...(state.tomb||{}), [id]:Date.now()}; lsSave(); renderAll(); }
 }
+// Per-setting change times, so two devices can merge settings field by field.
+let settingsBase=null;
+function markSettingsBase(){ settingsBase={}; for(const k of Object.keys(state.settings)) settingsBase[k]=JSON.stringify(state.settings[k]); }
+function stampSettings(){ const now=Date.now(), ts={...(state.settings._ts||{})}; if(settingsBase) for(const k of Object.keys(state.settings)) if(k!=="_ts" && JSON.stringify(state.settings[k])!==settingsBase[k]) ts[k]=now; state.settings={...state.settings,_ts:ts}; markSettingsBase(); }
 async function saveSettings(){
+  stampSettings();
   if(db){ await db.doc("config/settings").set(state.settings); } else { lsSave(); }
 }
 
