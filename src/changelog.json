@@ -58,5 +58,10 @@
     "n": 12,
     "date": "2026-10-20",
     "text": "Data wysyłki jest pod ptaszkiem i można ją zmienić po kliknięciu."
+  },
+  {
+    "n": 13,
+    "date": "2026-10-24",
+    "text": "Rachunki i faktury: przycisk „Uzupełnij dane kupującego” przy komunikacie o brakach, z powrotem do dokumentu po zapisaniu."
   }
 ]

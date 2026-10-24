@@ -943,21 +943,33 @@ function plnWords(v){
 }
 function addMonths(iso,n){ const [y,m,d]=iso.split("-").map(Number); const t=new Date(y,m-1+n,1), last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(Math.min(d,last)).padStart(2,"0")}`; }
 function monthEnd(iso){ const [y,m]=iso.split("-").map(Number); const t=new Date(y,m,0); return `${y}-${String(m).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`; }
+const fixBtn=(id, miss)=>`<div class="btns" style="margin-top:8px"><button class="b sm primary" type="button" data-fixbuyer="${esc(id)}" data-miss="${esc(miss.join(","))}">Uzupełnij dane kupującego</button></div>`;
+let returnToDoc=null;
+$("#docAlerts").addEventListener("click", e=>{
+  const b=e.target.closest("[data-fixbuyer]"); if(!b) return;
+  const id=b.dataset.fixbuyer, miss=b.dataset.miss.split(",");
+  returnToDoc={id, type:$("#d_type").value, no:$("#d_no").value, date:$("#d_date").value, pay:$("#d_payText").value};
+  switchTab("sprzedaz"); editSale(id);
+  const det=$("#saleForm details"); if(det) det.open=true;
+  const f=miss.includes("imię i nazwisko")?"#s_buyerName":miss.includes("adres")?"#s_buyerAddr":"#s_buyerNip";
+  $("#saleStatus").textContent="Uzupełnij dane i zapisz. Wrócisz do wystawiania dokumentu.";
+  setTimeout(()=>{ $(f).focus(); $(f).scrollIntoView({behavior:"smooth",block:"center"}); },300);
+});
 function renderDocAlerts(d){
   const box=$("#docAlerts"); if(!box) return; if(!d){ box.innerHTML=""; return; }
   const s=d.s, al=[];
   const miss=missingBuyer(s);
-  if(miss.length) al.push(["crit",`Brak danych kupującego: ${miss.join(" oraz ")}`,`Rachunek i faktura muszą zawierać imię i nazwisko (albo nazwę firmy) oraz adres nabywcy.${!String(s.buyerName||"").trim()&&s.buyerAccount?` Nazwa konta z portalu (${s.buyerAccount}) nie zastępuje imienia i nazwiska.`:""} Uzupełnij dane przy tej sprzedaży w zakładce Sprzedaż, w sekcji „Dane kupującego i dokument”.`]);
+  if(miss.length) al.push(["crit",`Brak danych kupującego: ${miss.join(" oraz ")}`,`Rachunek i faktura muszą zawierać imię i nazwisko (albo nazwę firmy) oraz adres nabywcy.${!String(s.buyerName||"").trim()&&s.buyerAccount?` Nazwa konta z portalu (${s.buyerAccount}) nie zastępuje imienia i nazwiska.`:""} Uzupełnij dane przy tej sprzedaży w zakładce Sprzedaż, w sekcji „Dane kupującego i dokument”.`, fixBtn(s.id, miss)]);
   if(d.type==="faktura"){
     const reqBy=addMonths(monthEnd(s.date),3), issueBy=addMonths(s.date.slice(0,8)+"15",1);
     al.push(["",`Termin faktury`,`Kupujący może zażądać faktury do ${plDate(reqBy)}. Wystaw ją do ${plDate(issueBy)}, a przy późniejszym żądaniu w ciągu 15 dni od niego.`]);
-    if(s.buyerType==="firma" && !String(s.buyerNip||"").trim()) al.push(["warn","Brak NIP nabywcy","Od 1.02.2026 na fakturze dla firmy trzeba podać NIP nabywcy, jeśli go ma. Uzupełnij go w danych kupującego przy tej sprzedaży (zakładka Sprzedaż)."]);
+    if(s.buyerType==="firma" && !String(s.buyerNip||"").trim()) al.push(["warn","Brak NIP nabywcy","Od 1.02.2026 na fakturze dla firmy trzeba podać NIP nabywcy, jeśli go ma. Uzupełnij go w danych kupującego przy tej sprzedaży.", fixBtn(s.id, ["NIP"])]);
     if(s.buyerType==="firma" && yearOf(d.date)>=2027) al.push(["warn","Faktura dla firmy w KSeF","Od 1.01.2027 fakturę dla firmy wystawiasz w KSeF, do czego potrzebujesz własnego NIP (zgłoszenie NIP-7)."]);
   } else {
     al.push(["",`Termin rachunku`,`Kupujący może zażądać rachunku do ${plDate(addMonths(s.date,3))} (3 miesiące od wydania towaru). Wystaw go w ciągu 7 dni od żądania.`]);
     if(s.buyerType==="firma") al.push(["warn","Kupujący to firma","Jeśli firma prosi o fakturę, musisz wystawić fakturę bez VAT, a nie rachunek."]);
   }
-  box.innerHTML=al.map(([k,t,x])=>`<div class="alert ${k}"><strong>${esc(t)}</strong>${esc(x)}</div>`).join("");
+  box.innerHTML=al.map(([k,t,x,act])=>`<div class="alert ${k}"><strong>${esc(t)}</strong>${esc(x)}${act||""}</div>`).join("");
 }
 function renderDocPreview(){
   const d=docData(); renderDocAlerts(d);
@@ -1340,7 +1352,7 @@ $("#prodCsv").onclick=()=>download("produkty.csv", csv([["Nazwa","Grupa","Cena",
 // ---------- forms ----------
 const SALE_FIELDS=["date","productId","item","platform","price","ship","pay","delivery","buyerType","kind","cost","refund","buyerName","buyerAccount","buyerAddr","shipped","buyerNip","docType","docNo","notes"];
 const NUMS=new Set(["price","ship","cost","refund","amount","eur"]);
-function resetSale(){ renderPlatformSelect(); renderProductSelect(); $("#saleForm").reset(); $("#s_id").value=""; $("#s_date").value=today(); $("#saleFormTitle").textContent="Nowa sprzedaż"; $("#saleDelete").hidden=true; $("#saleDoc").hidden=true; $("#saleDelete").dataset.armed=""; $("#saleDelete").textContent="Usuń"; }
+function resetSale(){ if(typeof returnToDoc!=="undefined") returnToDoc=null;  renderPlatformSelect(); renderProductSelect(); $("#saleForm").reset(); $("#s_id").value=""; $("#s_date").value=today(); $("#saleFormTitle").textContent="Nowa sprzedaż"; $("#saleDelete").hidden=true; $("#saleDoc").hidden=true; $("#saleDelete").dataset.armed=""; $("#saleDelete").textContent="Usuń"; }
 function editSale(id){
   const s=state.sales.find(x=>x.id===id); if(!s) return;
   renderPlatformSelect(s.platform); renderProductSelect(s.productId);
@@ -1355,7 +1367,8 @@ $("#saleForm").addEventListener("submit", async e=>{
   for(const f of SALE_FIELDS){ const v=$("#s_"+f).value; o[f]=NUMS.has(f)?(+v||0):v.trim(); }
   if(o.docType && !o.docNo) o.docNo = nextDocNo(o.docType, yearOf(o.date));
   $("#saleStatus").textContent="Zapisuję…";
-  try{ await putDoc("sales",o); $("#saleStatus").textContent=""; toast(old?"Zapisano zmiany":"Dodano sprzedaż"); if(yearOf(o.date)!==state.year){ state.year=yearOf(o.date); renderAll(); } resetSale(); }
+  try{ await putDoc("sales",o); $("#saleStatus").textContent="";
+    if(returnToDoc && returnToDoc.id===o.id){ const r=returnToDoc; returnToDoc=null; resetSale(); switchTab("dokumenty"); renderDocSelect(r.id); loadDocFor(r.id); $("#d_type").value=r.type; $("#d_no").value=r.no; $("#d_date").value=r.date; $("#d_payText").value=r.pay; renderDocPreview(); toast("Zapisano dane kupującego"); return; } toast(old?"Zapisano zmiany":"Dodano sprzedaż"); if(yearOf(o.date)!==state.year){ state.year=yearOf(o.date); renderAll(); } resetSale(); }
   catch(err){ $("#saleStatus").textContent="Nie zapisano: "+(err?.code==="quota_exceeded"?"brak miejsca w bazie":"spróbuj ponownie"); }
 });
 $("#saleReset").onclick=resetSale;
