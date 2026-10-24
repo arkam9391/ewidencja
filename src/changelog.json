@@ -1,67 +1,72 @@
 [
-  {
-    "n": 1,
-    "date": "2026-10-20",
-    "text": "Dokumenty zakupu w Kosztach: zdjęcie lub PDF z automatycznym odczytem danych."
-  },
-  {
-    "n": 2,
-    "date": "2026-10-20",
-    "text": "DAC7: próg 2000 € liczony po kursie NBP z pierwszego dnia roboczego roku."
-  },
-  {
-    "n": 3,
-    "date": "2026-10-20",
-    "text": "Rachunki i faktury: kwota słownie, terminy wystawienia, ostrzeżenie o braku NIP nabywcy, bez linii podpisów."
-  },
-  {
-    "n": 4,
-    "date": "2026-10-20",
-    "text": "Pole „Konto na portalu” w danych kupującego; dokument wymaga imienia, nazwiska i adresu nabywcy."
-  },
-  {
-    "n": 5,
-    "date": "2026-10-20",
-    "text": "Edytowalna lista portali w Ustawieniach i nowa zakładka Produkty z wyborem produktu przy sprzedaży."
-  },
-  {
-    "n": 6,
-    "date": "2026-10-20",
-    "text": "Powiadomienie o nowej wersji programu z przyciskiem przeładowania."
-  },
-  {
-    "n": 7,
-    "date": "2026-10-20",
-    "text": "Lista portali w Ustawieniach jest zwinięta i rozwija się po kliknięciu."
-  },
-  {
-    "n": 8,
-    "date": "2026-10-20",
-    "text": "Nowy wygląd: panel boczny z nawigacją, górna belka z wyszukiwarką (skrót /) i przyciskiem Nowa sprzedaż, Pulpit z kaflami, ostatnimi sprzedażami i kalendarzem."
-  },
-  {
-    "n": 9,
-    "date": "2026-10-20",
-    "text": "Tabele sprzedaży, kosztów i ostatnich sprzedaży mieszczą się w oknie bez przewijania w bok."
-  },
-  {
-    "n": 10,
-    "date": "2026-10-20",
-    "text": "Nowe logo „Paragon” w panelu bocznym, na ikonie programu i karcie przeglądarki."
-  },
-  {
-    "n": 11,
-    "date": "2026-10-20",
-    "text": "Kolumna „Wysłane” w tabeli sprzedaży: zaznaczenie zapisuje datę wysyłki."
-  },
-  {
-    "n": 12,
-    "date": "2026-10-20",
-    "text": "Data wysyłki jest pod ptaszkiem i można ją zmienić po kliknięciu."
-  },
-  {
-    "n": 13,
-    "date": "2026-10-24",
-    "text": "Rachunki i faktury: przycisk „Uzupełnij dane kupującego” przy komunikacie o brakach, z powrotem do dokumentu po zapisaniu."
-  }
+ {
+  "n": 1,
+  "date": "2026-10-20",
+  "text": "Dokumenty zakupu w Kosztach: zdjęcie lub PDF z automatycznym odczytem danych."
+ },
+ {
+  "n": 2,
+  "date": "2026-10-20",
+  "text": "DAC7: próg 2000 € liczony po kursie NBP z pierwszego dnia roboczego roku."
+ },
+ {
+  "n": 3,
+  "date": "2026-10-20",
+  "text": "Rachunki i faktury: kwota słownie, terminy wystawienia, ostrzeżenie o braku NIP nabywcy, bez linii podpisów."
+ },
+ {
+  "n": 4,
+  "date": "2026-10-20",
+  "text": "Pole „Konto na portalu” w danych kupującego; dokument wymaga imienia, nazwiska i adresu nabywcy."
+ },
+ {
+  "n": 5,
+  "date": "2026-10-20",
+  "text": "Edytowalna lista portali w Ustawieniach i nowa zakładka Produkty z wyborem produktu przy sprzedaży."
+ },
+ {
+  "n": 6,
+  "date": "2026-10-20",
+  "text": "Powiadomienie o nowej wersji programu z przyciskiem przeładowania."
+ },
+ {
+  "n": 7,
+  "date": "2026-10-20",
+  "text": "Lista portali w Ustawieniach jest zwinięta i rozwija się po kliknięciu."
+ },
+ {
+  "n": 8,
+  "date": "2026-10-20",
+  "text": "Nowy wygląd: panel boczny z nawigacją, górna belka z wyszukiwarką (skrót /) i przyciskiem Nowa sprzedaż, Pulpit z kaflami, ostatnimi sprzedażami i kalendarzem."
+ },
+ {
+  "n": 9,
+  "date": "2026-10-20",
+  "text": "Tabele sprzedaży, kosztów i ostatnich sprzedaży mieszczą się w oknie bez przewijania w bok."
+ },
+ {
+  "n": 10,
+  "date": "2026-10-20",
+  "text": "Nowe logo „Paragon” w panelu bocznym, na ikonie programu i karcie przeglądarki."
+ },
+ {
+  "n": 11,
+  "date": "2026-10-20",
+  "text": "Kolumna „Wysłane” w tabeli sprzedaży: zaznaczenie zapisuje datę wysyłki."
+ },
+ {
+  "n": 12,
+  "date": "2026-10-20",
+  "text": "Data wysyłki jest pod ptaszkiem i można ją zmienić po kliknięciu."
+ },
+ {
+  "n": 13,
+  "date": "2026-10-24",
+  "text": "Rachunki i faktury: przycisk „Uzupełnij dane kupującego” przy komunikacie o brakach, z powrotem do dokumentu po zapisaniu."
+ },
+ {
+  "n": 14,
+  "date": "2026-10-24",
+  "text": "Wersja na telefon: dolny pasek z najważniejszymi zakładkami i menu „Więcej”, okrągły przycisk nowej sprzedaży, tabele jako karty, kalendarz dopasowany do małego ekranu."
+ }
 ]

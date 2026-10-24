@@ -193,6 +193,68 @@ td.shipcell{width:1%;text-align:center}
 .shipedit{width:auto;padding:2px 4px;font-size:.8rem;margin-top:3px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:.88rem;z-index:20}
 @media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+.morebtn{display:none}
+@media (max-width:700px){
+  body{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  .side{position:fixed;inset:auto 0 0 0;z-index:15;width:auto;height:auto;display:flex;flex-direction:row;align-items:stretch;gap:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:var(--surface);border:0;border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.08)}
+  .side .logo,.side .sidefoot{display:none}
+  #tabs{flex:4 1 0;min-width:0;flex-direction:row;flex-wrap:nowrap;gap:2px}
+  .morebtn{flex:1 1 0!important}
+  #tabs button{display:none}
+  .morebtn{all:unset;box-sizing:border-box;cursor:pointer;color:var(--fg)}
+  #tabs button.prim,.morebtn{display:flex;align-items:center;flex:1;min-width:0;flex-direction:column;justify-content:center;gap:3px;padding:6px 2px;font-size:11px;line-height:1.1;text-align:center;border-radius:10px;min-height:52px}
+  #tabs button.prim span:first-of-type{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  #tabs button.prim span[data-short]{font-size:0}
+  #tabs button.prim span[data-short]::after{content:attr(data-short);font-size:11px}
+  #tabs button.prim svg,.morebtn svg{width:20px;height:20px}
+  .morebtn svg{stroke:var(--muted)}
+  .side.more{flex-wrap:wrap;max-height:85vh;overflow-y:auto}
+  .side.more #tabs{flex-basis:100%;order:-1;display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:6px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .side.more #tabs button{display:flex;flex-direction:row;justify-content:flex-start;text-align:left;gap:10px;font-size:15px;padding:11px 10px;min-height:0}
+  .side.more #tabs button.prim span:first-of-type{font-size:15px}
+  .side.more #tabs button.prim span[data-short]::after{content:none}
+  .side.more #tabs button svg{width:17px;height:17px}
+  .side.more .navgrp{display:block;padding:10px 10px 4px}
+  .side.more .sidefoot{display:flex;flex-basis:100%;order:-1;justify-content:space-between;border-top:0;padding:4px 10px 10px;margin:0}
+  .side.more .morebtn{flex:none!important;width:100%;flex-direction:row;justify-content:center;gap:8px;font-size:14px;min-height:44px}
+  .moreshade{position:fixed;inset:0;z-index:14;background:rgba(0,0,0,.35)}
+  .topbar{position:sticky;top:0;padding:8px 14px;gap:8px 10px;min-height:0}
+  .ttl b{font-size:18px} #todayDate,.kbd{display:none}
+  .tools{gap:8px} .tools select{height:36px;padding:0 6px}
+  .iconbtn{width:36px;height:36px}
+  #newSaleBtn{position:fixed;right:14px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:12;width:56px;height:56px;border-radius:18px;padding:0;justify-content:center;font-size:0;gap:0;box-shadow:0 8px 22px rgba(0,0,0,.25)}
+  #newSaleBtn svg{width:24px;height:24px}
+  .gsearch{height:38px}
+  .content .wrap{padding-left:12px;padding-right:12px}
+  main{padding-block:14px 90px;gap:14px}
+  .card{padding:14px;gap:12px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:12px}
+  .kpi .val{font-size:17px}
+  .kpi .lab{font-size:11.5px;flex-wrap:wrap}
+  .kpi .sub{font-size:11px}
+  .doc-preview{padding:14px}
+  .tablewrap table:has(thead) thead{display:none}
+  .tablewrap table:has(thead),.tablewrap table:has(thead) tbody,.tablewrap table:has(thead) tfoot{display:block}
+  .tablewrap table:has(thead) tr{display:block;padding:10px 4px;border-bottom:1px solid var(--line)}
+  .tablewrap table:has(thead) tbody tr:last-child{border-bottom:0}
+  .tablewrap table:has(thead) td{display:block;position:relative;border:0;padding:3px 0 3px 36%;white-space:normal;text-align:left;overflow-wrap:anywhere;min-height:1.4em}
+  .tablewrap table:has(thead) td::before{content:attr(data-label);position:absolute;left:0;top:4px;width:33%;font-size:.76rem;font-family:var(--f-body);font-weight:400;color:var(--muted);white-space:normal}
+  .tablewrap table:has(thead) td:not([data-label]),.tablewrap table:has(thead) td[data-label=""]{padding-left:0}
+  .tablewrap table:has(thead) td.empty{padding:20px 8px;text-align:center}
+  .tablewrap table:has(thead) tr.click:hover td{background:none} .tablewrap table:has(thead) tr.click:active{background:var(--accent-soft)}
+  td.shipcell{width:auto;text-align:left} .shipcb{margin-inline:0;width:22px;height:22px} .shipdate{display:inline-block;margin:0 0 0 10px;vertical-align:middle}
+  .tablewrap .btns{flex-wrap:wrap!important}
+  th,td{white-space:normal}
+  .calgrid.big{min-width:0!important}
+  .calgrid.big .day{min-height:52px;padding:4px}
+  .calgrid.big .lbl{display:none}
+  .calgrid.big .lbl.hol,.calgrid.big .lbl.due,.calgrid.big .lbl.ev{display:block;font-size:0;height:5px;width:100%;padding:0}
+  .calgrid.big .lbl.hol{background:var(--crit)}
+  .calgrid .dow{font-size:.62rem}
+  .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+  input,select,textarea{font-size:16px}
+}
 </style>
 
 <div class="app">
@@ -200,20 +262,21 @@ td.shipcell{width:1%;text-align:center}
     <div class="logo"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path class="lp" d="M10 6h12v20l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z"/><path class="ll" d="M13 11h6M13 15h6M13 19h3.5" stroke-width="1.8" stroke-linecap="round"/></svg><div><b>Ewidencja</b><span class="lsub">sprzedaży</span></div></div>
     <nav role="tablist" id="tabs" aria-label="Sekcje programu" aria-orientation="vertical">
       <span class="navgrp">Na co dzień</span>
-      <button role="tab" data-tab="pulpit" aria-selected="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Pulpit</span></button>
-      <button role="tab" data-tab="sprzedaz"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12 12 20 3 11V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Sprzedaż</span></button>
-      <button role="tab" data-tab="koszty"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Koszty</span></button>
+      <button role="tab" class="prim" data-tab="pulpit" aria-selected="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Pulpit</span></button>
+      <button role="tab" class="prim" data-tab="sprzedaz"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12 12 20 3 11V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Sprzedaż</span></button>
+      <button role="tab" class="prim" data-tab="koszty"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Koszty</span></button>
       <button role="tab" data-tab="produkty"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg><span>Produkty</span></button>
       <button role="tab" data-tab="kalendarz"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Kalendarz</span> <span class="badge" id="navCalBadge" hidden></span></button>
       <span class="navgrp">Dokumenty i podatki</span>
       <button role="tab" data-tab="ewidencja"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z"/><path d="M8 8h6M8 12h6"/></svg><span>Ewidencja dzienna</span></button>
-      <button role="tab" data-tab="dokumenty"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg><span>Rachunki i faktury</span></button>
+      <button role="tab" class="prim" data-tab="dokumenty"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg><span data-short="Rachunki">Rachunki i faktury</span></button>
       <button role="tab" data-tab="pit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/></svg><span>PIT roczny</span></button>
       <span class="navgrp">Aplikacja</span>
       <button role="tab" data-tab="kopie"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg><span>Kopie bezpieczeństwa</span></button>
       <button role="tab" data-tab="ustawienia"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg><span>Ustawienia</span></button>
       <button role="tab" data-tab="zasady"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>Zasady</span></button>
     </nav>
+    <button type="button" id="moreBtn" class="morebtn" aria-expanded="false" aria-label="Więcej sekcji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Więcej</span></button>
     <div class="sidefoot">
       <span class="savestate"><i id="saveDot"></i><span id="saveState">Dane zapisane</span></span>
       <label class="themepick" for="palette"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg>Motyw<select id="palette">
@@ -1531,6 +1594,12 @@ $("#backupUp").addEventListener("change", async e=>{
 // tabs & year
 function switchTab(t){ state.tab=t; document.querySelectorAll("#tabs button").forEach(b=>{ b.setAttribute("aria-selected", b.dataset.tab===t); if(b.dataset.tab===t){ $("#pageTitle").textContent=b.querySelector("span").textContent; document.title=b.querySelector("span").textContent+" · Ewidencja sprzedaży"; } }); document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==t); try{ localStorage.setItem(LS+"-tab",t); }catch(e){} }
 $("#tabs").addEventListener("click", e=>{ const b=e.target.closest("button[data-tab]"); if(b) switchTab(b.dataset.tab); });
+function setMore(open){ $(".side").classList.toggle("more",open); $("#moreBtn").setAttribute("aria-expanded",open); $("#moreBtn span").textContent=open?"Zamknij":"Więcej"; let sh=$(".moreshade"); if(open&&!sh){ sh=document.createElement("div"); sh.className="moreshade"; sh.onclick=()=>setMore(false); document.body.appendChild(sh); } else if(!open&&sh) sh.remove(); }
+$("#moreBtn").onclick=()=>setMore(!$(".side").classList.contains("more"));
+$("#tabs").addEventListener("click", e=>{ if(e.target.closest("button[data-tab]")){ setMore(false); window.scrollTo({top:0}); } });
+function labelTables(){ document.querySelectorAll(".tablewrap table").forEach(t=>{ const hs=[...t.querySelectorAll("thead th")].map(th=>th.textContent.trim()); if(!hs.length) return; t.querySelectorAll("tbody tr, tfoot tr").forEach(tr=>{ let i=0; [...tr.children].forEach(td=>{ const l=hs[i]??""; if(td.dataset.label!==l) td.dataset.label=l; i+=+td.colSpan||1; }); }); }); }
+new MutationObserver(()=>{ cancelAnimationFrame(labelTables._r); labelTables._r=requestAnimationFrame(labelTables); }).observe($("main"),{childList:true,subtree:true});
+labelTables();
 $("#year").addEventListener("change", e=>{ state.year=+e.target.value; renderAll(); });
 $("#newSaleBtn").onclick=()=>{ switchTab("sprzedaz"); resetSale(); $("#saleForm").scrollIntoView({behavior:"smooth",block:"start"}); setTimeout(()=>$("#s_productId").focus(),250); };
 $("#recentAll").onclick=()=>switchTab("sprzedaz");
