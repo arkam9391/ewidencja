@@ -73,5 +73,10 @@
   "n": 15,
   "date": "2026-10-24",
   "text": "Synchronizacja telefonu i komputera przez Google Drive (Ustawienia). Dane są szyfrowane Twoim hasłem synchronizacji, razem z dowodami zakupu. Ikona chmury u góry pokazuje stan."
+ },
+ {
+  "n": 16,
+  "date": "2026-10-25",
+  "text": "Synchronizacja z Google Drive jest gotowa: w Ustawieniach wystarczy wpisać hasło synchronizacji i połączyć konto Google."
  }
 ]

@@ -124,7 +124,7 @@ function initLockUI(){
 """)
 src = swap_re(src, r"async function initStore\(\)\{.*?\n\}\n(?=\n// ---------- backups)", """
 // ---------- Google Drive sync (hidden app folder, AES-GCM with the sync password) ----------
-const SYNC_CLIENT_ID = "";
+const SYNC_CLIENT_ID = "726119907789-c9b77nae4hvu150t447mo71hrsueugcj.apps.googleusercontent.com";
 const SYNC_LS = "ewidencja-sync", SYNC_FILE = "ewidencja-sync.bin", SYNC_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const sync = {cfg:{}, key:null, busy:false, again:false, timer:null, applying:false};
 const b64 = u => btoa(String.fromCharCode(...u)), unb64 = t => Uint8Array.from(atob(t), c=>c.charCodeAt(0));
